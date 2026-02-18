@@ -30,7 +30,7 @@
 
 ## 🎬 What Makes T.A.R.S Different?
 
-T.A.R.S isn't just another monitoring tool. Inspired by the iconic AI from *Interstellar*, it combines:
+T.A.R.S isn't just another monitoring tool. It combines:
 - 🧠 **AI-Powered Analysis** - Gemini integration for intelligent troubleshooting
 - 😏 **Personality** - Sarcastic, witty responses that make debugging less painful
 - ⚡ **Real-Time** - Live monitoring with instant spike detection
@@ -236,12 +236,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 T.A.R.S responds with personality, making debugging less painful:
 
 ```
-TARS: "Developer, this is no time for caution."
+TARS: "This is no time for caution."
 TARS: "Humor setting at 90%. Cluster monitoring initiated."
 TARS: "All systems operational. Sarcasm levels optimal."
 ```
 
-Inspired by the AI from *Interstellar*, T.A.R.S brings wit and intelligence to your terminal.
+T.A.R.S brings wit and intelligence to your terminal.
 
 ---
 
@@ -294,7 +294,7 @@ git clone https://github.com/orathore93-hue/tars-cli.git
 
 <div align="center">
 
-**"Developer, this is no time for caution."** - T.A.R.S
+**"Monitoring your cluster with intelligence and wit."** - T.A.R.S
 
 Made with 💚 for the DevOps community
 

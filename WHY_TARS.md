@@ -3,7 +3,7 @@
 ## 🎯 Unique Selling Points
 
 ### 1. **Personality-Driven Monitoring**
-Unlike boring monitoring tools, T.A.R.S has personality. Inspired by the AI from Interstellar, it makes debugging actually enjoyable.
+Unlike boring monitoring tools, T.A.R.S has personality. It makes debugging actually enjoyable.
 
 ### 2. **AI-Powered Troubleshooting**
 Not just metrics - T.A.R.S uses Gemini AI to analyze issues and provide actionable insights in plain English (with sarcasm).
@@ -54,4 +54,4 @@ T.A.R.S: "Developer, your pod is having an existential crisis. It's CrashLooping
 
 ---
 
-*"Developer, this is no time for caution."* - T.A.R.S
+*"Monitoring your cluster with intelligence and wit."* - T.A.R.S

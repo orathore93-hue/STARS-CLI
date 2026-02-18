@@ -66,4 +66,4 @@ Open an issue or reach out to the maintainer.
 
 ---
 
-*"Developer, this is no time for caution."* - T.A.R.S
+*"Monitoring your cluster with intelligence and wit."* - T.A.R.S

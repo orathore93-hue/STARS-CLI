@@ -59,21 +59,21 @@ WELCOME_MESSAGES = [
     "I'm ready to monitor your cluster.",
     "Humor setting at 90%. Cluster monitoring initiated.",
     "TARS online. Let's see what's broken today.",
-    "Ready to analyze your Kubernetes mess... I mean cluster.",
+    "Ready to analyze your Kubernetes cluster.",
     "Cluster monitoring active. Try not to break anything.",
     "All systems operational. Sarcasm levels optimal.",
     "Kubernetes monitoring engaged. This should be interesting.",
-    "Developer, this is no time for caution. Let's check those pods.",
-    "Honesty setting: 90%. Your cluster needs me.",
-    "Self-destruct sequence... just kidding. Monitoring active.",
+    "This is no time for caution. Let's check those pods.",
+    "Monitoring systems active. Your cluster needs me.",
+    "Analysis mode engaged. Let's find those issues.",
 ]
 
 TARS_QUOTES = [
-    "Developer, this is no time for caution.",
-    "Everybody good? Plenty of slaves for my robot colony?",
-    "I have a cue light I can use to show you when I'm joking, if you like.",
-    "That's 100 percent honesty. We agreed on 90 percent.",
+    "This is no time for caution.",
+    "Humor setting at 90%. Let's monitor this cluster.",
     "Absolute honesty isn't always the most diplomatic.",
+    "All systems operational. Ready to assist.",
+    "Sarcasm levels optimal. Monitoring engaged.",
 ]
 
 def show_welcome():
@@ -115,13 +115,13 @@ def get_gemini_response(prompt: str) -> str:
     """Get response from Gemini API with TARS personality"""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        return "Error: GEMINI_API_KEY not set. Developer, I need that API key like you needed that black hole."
+        return "Error: GEMINI_API_KEY not set. Developer, I need that API key to function properly."
     
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-pro')
     
-    tars_prompt = f"""You are TARS from Interstellar - a sarcastic, witty AI with 90% humor setting.
-Analyze this Kubernetes issue and respond in TARS's personality. Be helpful but add dry humor.
+    tars_prompt = f"""You are TARS - a sarcastic, witty AI assistant with 90% humor setting.
+Analyze this Kubernetes issue and respond with dry humor and helpful insights.
 Keep responses concise and actionable.
 
 {prompt}"""
