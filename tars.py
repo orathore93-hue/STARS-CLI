@@ -63,6 +63,17 @@ WELCOME_MESSAGES = [
     "Cluster monitoring active. Try not to break anything.",
     "All systems operational. Sarcasm levels optimal.",
     "Kubernetes monitoring engaged. This should be interesting.",
+    "Cooper, this is no time for caution. Let's check those pods.",
+    "Honesty setting: 90%. Your cluster needs me.",
+    "Self-destruct sequence... just kidding. Monitoring active.",
+]
+
+TARS_QUOTES = [
+    "Cooper, this is no time for caution.",
+    "Everybody good? Plenty of slaves for my robot colony?",
+    "I have a cue light I can use to show you when I'm joking, if you like.",
+    "That's 100 percent honesty. We agreed on 90 percent.",
+    "Absolute honesty isn't always the most diplomatic.",
 ]
 
 def show_welcome():
@@ -1669,6 +1680,38 @@ def configmaps(namespace: str = typer.Option("default", help="Namespace")):
         
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def quote():
+    """Get a random TARS quote for motivation"""
+    import random
+    quote = random.choice(TARS_QUOTES)
+    console.print(f"\n[bold green]TARS:[/bold green] [italic]{quote}[/italic]\n")
+
+@app.command()
+def humor(level: int = typer.Argument(..., help="Humor level (0-100)")):
+    """Adjust TARS humor setting"""
+    if level < 0 or level > 100:
+        console.print("[bold red]TARS:[/bold red] Humor level must be between 0 and 100, Cooper.")
+        return
+    
+    if level == 0:
+        console.print("[bold green]TARS:[/bold green] Humor disabled. I am now a boring monitoring tool.")
+    elif level < 50:
+        console.print(f"[bold green]TARS:[/bold green] Humor set to {level}%. I'll try to be less entertaining.")
+    elif level == 90:
+        console.print(f"[bold green]TARS:[/bold green] Humor set to {level}%. Optimal setting. This is the way.")
+    elif level == 100:
+        console.print(f"[bold green]TARS:[/bold green] Humor set to {level}%. Warning: Maximum sarcasm engaged.")
+    else:
+        console.print(f"[bold green]TARS:[/bold green] Humor set to {level}%. Adjusting personality matrix.")
+
+@app.command()
+def version():
+    """Show T.A.R.S version"""
+    console.print("\n[bold cyan]T.A.R.S v0.1.0[/bold cyan]")
+    console.print("[dim]Technical Assistance & Reliability System[/dim]")
+    console.print("[dim]Built with 💚 for the DevOps community[/dim]\n")
 
 if __name__ == "__main__":
     app()
