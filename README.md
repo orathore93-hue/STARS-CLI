@@ -190,6 +190,20 @@ TARS: Analyzing cluster...
 
 ## 🎯 Commands
 
+### 🔥 Unique Features (No Other CLI Has These!)
+
+| Command | Description | Why It's Special |
+|---------|-------------|------------------|
+| `tars pulse` | Live cluster heartbeat visualization | Real-time health pulse with ♥ animation |
+| `tars story` | Tell your cluster's story | Narrative view of what happened today |
+| `tars forecast` | Predict future issues | AI-powered trend analysis |
+| `tars blast <pod>` | Blast radius analysis | See impact if a resource fails |
+| `tars chaos` | Chaos engineering insights | Find weak points before they break |
+| `tars compare` | Compare namespaces | Visual bar charts of resource usage |
+| `tars timeline` | Events timeline | Last 30 minutes in chronological order |
+
+### 📊 Standard Monitoring
+
 | Command | Description | Use Case |
 |---------|-------------|----------|
 | `tars setup` | Verify installation | First-time setup |

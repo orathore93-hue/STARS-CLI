@@ -1707,6 +1707,467 @@ def humor(level: int = typer.Argument(..., help="Humor level (0-100)")):
         console.print(f"[bold green]TARS:[/bold green] Humor set to {level}%. Adjusting personality matrix.")
 
 @app.command()
+def pulse():
+    """Live cluster heartbeat - real-time health pulse visualization"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        
+        console.print("[bold green]TARS:[/bold green] Monitoring cluster heartbeat... Press Ctrl+C to stop\n")
+        
+        from rich.live import Live
+        from rich.layout import Layout
+        from rich.panel import Panel
+        import random
+        
+        while True:
+            # Get real-time metrics
+            all_pods = v1.list_pod_for_all_namespaces()
+            nodes = v1.list_node()
+            
+            running = sum(1 for p in all_pods.items if p.status.phase == "Running")
+            total = len(all_pods.items)
+            failed = sum(1 for p in all_pods.items if p.status.phase == "Failed")
+            pending = sum(1 for p in all_pods.items if p.status.phase == "Pending")
+            
+            # Health percentage
+            health_pct = int((running / total * 100)) if total > 0 else 0
+            
+            # Create heartbeat visualization
+            if health_pct >= 95:
+                heart = "💚 ♥ ♥ ♥"
+                status_color = "green"
+                status_msg = "HEALTHY"
+            elif health_pct >= 80:
+                heart = "💛 ♥ ♥ ○"
+                status_color = "yellow"
+                status_msg = "DEGRADED"
+            else:
+                heart = "❤️  ♥ ○ ○"
+                status_color = "red"
+                status_msg = "CRITICAL"
+            
+            # Build display
+            display = f"""
+[bold {status_color}]{heart}[/bold {status_color}]  Cluster Pulse: [{status_color}]{health_pct}%[/{status_color}]
+
+[bold cyan]Status:[/bold cyan] [{status_color}]{status_msg}[/{status_color}]
+[bold cyan]Nodes:[/bold cyan] {len(nodes.items)} active
+[bold cyan]Pods:[/bold cyan] [green]{running}[/green] running | [yellow]{pending}[/yellow] pending | [red]{failed}[/red] failed
+[bold cyan]Total:[/bold cyan] {total} pods
+
+[dim]Last check: {datetime.now().strftime('%H:%M:%S')}[/dim]
+"""
+            
+            console.clear()
+            console.print(Panel(display, title="[bold green]Cluster Heartbeat Monitor[/bold green]", border_style="cyan"))
+            time.sleep(2)
+            
+    except KeyboardInterrupt:
+        console.print("\n[bold green]TARS:[/bold green] Heartbeat monitoring stopped.\n")
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def timeline():
+    """Show cluster events timeline - last 30 minutes"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        
+        console.print("[bold green]TARS:[/bold green] Analyzing cluster timeline...\n")
+        
+        events = v1.list_event_for_all_namespaces()
+        
+        # Filter recent events (last 30 min)
+        from datetime import timedelta
+        now = datetime.now(events.items[0].last_timestamp.tzinfo) if events.items else datetime.now()
+        recent = [e for e in events.items if e.last_timestamp and (now - e.last_timestamp) < timedelta(minutes=30)]
+        
+        # Sort by time
+        recent.sort(key=lambda x: x.last_timestamp, reverse=True)
+        
+        if not recent:
+            console.print("[bold green]TARS:[/bold green] No events in the last 30 minutes. Quiet cluster.")
+            return
+        
+        # Group by type
+        warnings = [e for e in recent if e.type == "Warning"]
+        normal = [e for e in recent if e.type == "Normal"]
+        
+        console.print(f"[bold cyan]Timeline:[/bold cyan] Last 30 minutes\n")
+        console.print(f"[bold yellow]⚠ Warnings:[/bold yellow] {len(warnings)}")
+        console.print(f"[bold green]✓ Normal:[/bold green] {len(normal)}\n")
+        
+        # Show timeline
+        for event in recent[:20]:  # Show last 20
+            time_str = event.last_timestamp.strftime('%H:%M:%S')
+            color = "red" if event.type == "Warning" else "green"
+            icon = "⚠" if event.type == "Warning" else "•"
+            
+            console.print(f"[{color}]{icon}[/{color}] [{color}]{time_str}[/{color}] {event.involved_object.name}: {event.message[:80]}")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def compare():
+    """Compare resource usage across namespaces"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        
+        console.print("[bold green]TARS:[/bold green] Comparing namespaces...\n")
+        
+        namespaces = v1.list_namespace()
+        
+        data = []
+        for ns in namespaces.items:
+            pods = v1.list_namespaced_pod(ns.metadata.name)
+            services = v1.list_namespaced_service(ns.metadata.name)
+            
+            pod_count = len(pods.items)
+            running = sum(1 for p in pods.items if p.status.phase == "Running")
+            
+            data.append({
+                "name": ns.metadata.name,
+                "pods": pod_count,
+                "running": running,
+                "services": len(services.items),
+                "health": int((running / pod_count * 100)) if pod_count > 0 else 100
+            })
+        
+        # Sort by pod count
+        data.sort(key=lambda x: x["pods"], reverse=True)
+        
+        table = Table(title="Namespace Comparison")
+        table.add_column("Namespace", style="cyan")
+        table.add_column("Pods", justify="right")
+        table.add_column("Running", justify="right")
+        table.add_column("Services", justify="right")
+        table.add_column("Health", justify="right")
+        table.add_column("Bar", style="cyan")
+        
+        for item in data:
+            if item["pods"] == 0:
+                continue
+                
+            health_color = "green" if item["health"] >= 95 else "yellow" if item["health"] >= 80 else "red"
+            bar_length = int(item["pods"] / 5) if item["pods"] > 0 else 0
+            bar = "█" * min(bar_length, 20)
+            
+            table.add_row(
+                item["name"][:30],
+                str(item["pods"]),
+                f"[{health_color}]{item['running']}[/{health_color}]",
+                str(item["services"]),
+                f"[{health_color}]{item['health']}%[/{health_color}]",
+                f"[cyan]{bar}[/cyan]"
+            )
+        
+        console.print(table)
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def forecast():
+    """Predict potential issues based on current trends (AI-powered)"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[bold green]TARS:[/bold green] Analyzing trends and forecasting issues..."),
+            console=console
+        ) as progress:
+            progress.add_task("forecast", total=None)
+            time.sleep(1)
+        
+        console.print()
+        
+        # Gather data
+        all_pods = v1.list_pod_for_all_namespaces()
+        events = v1.list_event_for_all_namespaces()
+        
+        # Analyze patterns
+        restart_counts = {}
+        for pod in all_pods.items:
+            if pod.status.container_statuses:
+                restarts = sum(c.restart_count for c in pod.status.container_statuses)
+                if restarts > 0:
+                    restart_counts[pod.metadata.name] = restarts
+        
+        # Recent warnings
+        from datetime import timedelta
+        now = datetime.now(events.items[0].last_timestamp.tzinfo) if events.items else datetime.now()
+        recent_warnings = [e for e in events.items 
+                          if e.type == "Warning" and e.last_timestamp 
+                          and (now - e.last_timestamp) < timedelta(hours=1)]
+        
+        # Generate forecast
+        predictions = []
+        
+        if len(restart_counts) > 5:
+            predictions.append({
+                "severity": "high",
+                "issue": "High Restart Rate Detected",
+                "detail": f"{len(restart_counts)} pods with restarts. Potential stability issues.",
+                "action": "Run: tars crashloop"
+            })
+        
+        if len(recent_warnings) > 10:
+            predictions.append({
+                "severity": "medium",
+                "issue": "Elevated Warning Events",
+                "detail": f"{len(recent_warnings)} warnings in last hour. System stress detected.",
+                "action": "Run: tars timeline"
+            })
+        
+        # Check pending pods
+        pending = [p for p in all_pods.items if p.status.phase == "Pending"]
+        if len(pending) > 3:
+            predictions.append({
+                "severity": "high",
+                "issue": "Resource Scheduling Issues",
+                "detail": f"{len(pending)} pods stuck pending. Possible resource constraints.",
+                "action": "Run: tars pending"
+            })
+        
+        if not predictions:
+            console.print("[bold green]TARS:[/bold green] No issues forecasted. Cluster looks stable. 🎯\n")
+            return
+        
+        console.print("[bold yellow]⚠ Forecast Analysis[/bold yellow]\n")
+        
+        for pred in predictions:
+            severity_color = "red" if pred["severity"] == "high" else "yellow"
+            icon = "🔴" if pred["severity"] == "high" else "🟡"
+            
+            console.print(f"{icon} [{severity_color}]{pred['issue']}[/{severity_color}]")
+            console.print(f"   {pred['detail']}")
+            console.print(f"   [dim]→ {pred['action']}[/dim]\n")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def blast():
+    """Blast radius analysis - what would break if this pod/node fails?"""
+    resource_name: str = typer.Argument(..., help="Pod or node name")
+    resource_type: str = typer.Option("pod", help="Resource type: pod or node")
+    
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        
+        console.print(f"[bold green]TARS:[/bold green] Calculating blast radius for {resource_type}: {resource_name}...\n")
+        
+        if resource_type == "pod":
+            # Find pod
+            all_pods = v1.list_pod_for_all_namespaces()
+            target_pod = None
+            for pod in all_pods.items:
+                if resource_name in pod.metadata.name:
+                    target_pod = pod
+                    break
+            
+            if not target_pod:
+                console.print(f"[bold red]✗[/bold red] Pod not found: {resource_name}")
+                return
+            
+            # Analyze impact
+            console.print(f"[bold cyan]Pod:[/bold cyan] {target_pod.metadata.name}")
+            console.print(f"[bold cyan]Namespace:[/bold cyan] {target_pod.metadata.namespace}")
+            console.print(f"[bold cyan]Node:[/bold cyan] {target_pod.spec.node_name}\n")
+            
+            # Check if part of deployment
+            if target_pod.metadata.owner_references:
+                owner = target_pod.metadata.owner_references[0]
+                console.print(f"[bold yellow]⚠ Impact Analysis:[/bold yellow]")
+                console.print(f"   Part of: {owner.kind}/{owner.name}")
+                
+                # Get replica count
+                if owner.kind == "ReplicaSet":
+                    apps_v1 = client.AppsV1Api()
+                    rs = apps_v1.read_namespaced_replica_set(owner.name, target_pod.metadata.namespace)
+                    replicas = rs.spec.replicas
+                    
+                    if replicas == 1:
+                        console.print(f"   [bold red]🔴 HIGH RISK:[/bold red] Only 1 replica! Service will be down.")
+                    elif replicas == 2:
+                        console.print(f"   [bold yellow]🟡 MEDIUM RISK:[/bold yellow] 2 replicas. 50% capacity loss.")
+                    else:
+                        console.print(f"   [bold green]🟢 LOW RISK:[/bold green] {replicas} replicas. Redundancy available.")
+            else:
+                console.print(f"[bold red]🔴 CRITICAL:[/bold red] Standalone pod! No redundancy.")
+        
+        elif resource_type == "node":
+            # Find node
+            nodes = v1.list_node()
+            target_node = None
+            for node in nodes.items:
+                if resource_name in node.metadata.name:
+                    target_node = node
+                    break
+            
+            if not target_node:
+                console.print(f"[bold red]✗[/bold red] Node not found: {resource_name}")
+                return
+            
+            # Count pods on node
+            all_pods = v1.list_pod_for_all_namespaces()
+            pods_on_node = [p for p in all_pods.items if p.spec.node_name == target_node.metadata.name]
+            
+            console.print(f"[bold cyan]Node:[/bold cyan] {target_node.metadata.name}")
+            console.print(f"[bold cyan]Pods on node:[/bold cyan] {len(pods_on_node)}\n")
+            
+            if len(pods_on_node) > 20:
+                console.print(f"[bold red]🔴 HIGH IMPACT:[/bold red] {len(pods_on_node)} pods would be affected!")
+            elif len(pods_on_node) > 10:
+                console.print(f"[bold yellow]🟡 MEDIUM IMPACT:[/bold yellow] {len(pods_on_node)} pods would be affected.")
+            else:
+                console.print(f"[bold green]🟢 LOW IMPACT:[/bold green] {len(pods_on_node)} pods would be affected.")
+            
+            # List critical pods
+            console.print(f"\n[bold cyan]Affected Pods:[/bold cyan]")
+            for pod in pods_on_node[:10]:
+                console.print(f"   • {pod.metadata.namespace}/{pod.metadata.name}")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def chaos():
+    """Chaos engineering insights - find weak points in your cluster"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        apps_v1 = client.AppsV1Api()
+        
+        console.print("[bold green]TARS:[/bold green] Running chaos engineering analysis...\n")
+        
+        vulnerabilities = []
+        
+        # Check single-replica deployments
+        deployments = apps_v1.list_deployment_for_all_namespaces()
+        for dep in deployments.items:
+            if dep.spec.replicas == 1:
+                vulnerabilities.append({
+                    "severity": "high",
+                    "type": "Single Point of Failure",
+                    "resource": f"{dep.metadata.namespace}/{dep.metadata.name}",
+                    "detail": "Only 1 replica - no redundancy",
+                    "fix": f"tars scale {dep.metadata.name} --replicas 3 --namespace {dep.metadata.namespace}"
+                })
+        
+        # Check pods without resource limits
+        all_pods = v1.list_pod_for_all_namespaces()
+        no_limits = 0
+        for pod in all_pods.items:
+            if pod.spec.containers:
+                for container in pod.spec.containers:
+                    if not container.resources or not container.resources.limits:
+                        no_limits += 1
+                        break
+        
+        if no_limits > 5:
+            vulnerabilities.append({
+                "severity": "medium",
+                "type": "Resource Limits Missing",
+                "resource": f"{no_limits} pods",
+                "detail": "Pods without limits can consume unlimited resources",
+                "fix": "Add resource limits to pod specs"
+            })
+        
+        # Check node distribution
+        nodes = v1.list_node()
+        if len(nodes.items) < 3:
+            vulnerabilities.append({
+                "severity": "high",
+                "type": "Insufficient Node Redundancy",
+                "resource": f"{len(nodes.items)} nodes",
+                "detail": "Less than 3 nodes - limited fault tolerance",
+                "fix": "Scale cluster to at least 3 nodes"
+            })
+        
+        # Display results
+        if not vulnerabilities:
+            console.print("[bold green]✓ No major vulnerabilities found![/bold green]")
+            console.print("[dim]Your cluster has good chaos resistance.[/dim]\n")
+            return
+        
+        console.print(f"[bold red]⚠ Found {len(vulnerabilities)} potential weak points:[/bold red]\n")
+        
+        for vuln in vulnerabilities:
+            severity_color = "red" if vuln["severity"] == "high" else "yellow"
+            icon = "🔴" if vuln["severity"] == "high" else "🟡"
+            
+            console.print(f"{icon} [{severity_color}]{vuln['type']}[/{severity_color}]")
+            console.print(f"   Resource: {vuln['resource']}")
+            console.print(f"   Issue: {vuln['detail']}")
+            console.print(f"   [dim]Fix: {vuln['fix']}[/dim]\n")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def story():
+    """Tell the story of your cluster - what happened today?"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        
+        console.print("[bold green]TARS:[/bold green] Let me tell you the story of your cluster today...\n")
+        
+        # Get events
+        events = v1.list_event_for_all_namespaces()
+        
+        # Filter today's events
+        from datetime import timedelta
+        now = datetime.now(events.items[0].last_timestamp.tzinfo) if events.items else datetime.now()
+        today = [e for e in events.items if e.last_timestamp and (now - e.last_timestamp) < timedelta(hours=24)]
+        
+        # Categorize
+        created = [e for e in today if "Created" in e.message or "Started" in e.message]
+        scaled = [e for e in today if "Scaled" in e.message]
+        failed = [e for e in today if e.type == "Warning"]
+        
+        # Tell the story
+        console.print("[bold cyan]📖 Today's Cluster Story[/bold cyan]\n")
+        
+        if len(created) > 0:
+            console.print(f"[green]🌅 Morning:[/green] Your cluster woke up and created {len(created)} new resources.")
+        
+        if len(scaled) > 0:
+            console.print(f"[cyan]☀️  Midday:[/cyan] Things got busy! {len(scaled)} scaling events occurred.")
+        
+        if len(failed) > 5:
+            console.print(f"[red]⚠️  Afternoon:[/red] Some drama - {len(failed)} warnings were raised.")
+        elif len(failed) > 0:
+            console.print(f"[yellow]🌤️  Afternoon:[/yellow] A few hiccups - {len(failed)} minor warnings.")
+        else:
+            console.print(f"[green]✨ Afternoon:[/green] Smooth sailing - no issues!")
+        
+        # Current state
+        all_pods = v1.list_pod_for_all_namespaces()
+        running = sum(1 for p in all_pods.items if p.status.phase == "Running")
+        
+        console.print(f"\n[bold green]🌙 Right Now:[/bold green] {running} pods running happily.")
+        
+        # Moral of the story
+        if len(failed) == 0:
+            console.print(f"\n[dim italic]Moral: A peaceful day in the cluster. Even I'm impressed.[/dim italic]\n")
+        elif len(failed) < 5:
+            console.print(f"\n[dim italic]Moral: A few bumps, but nothing we couldn't handle.[/dim italic]\n")
+        else:
+            console.print(f"\n[dim italic]Moral: It's been a wild ride. Time for some triage.[/dim italic]\n")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
 def version():
     """Show T.A.R.S version"""
     console.print("\n[bold cyan]T.A.R.S v0.1.0[/bold cyan]")
