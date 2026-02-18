@@ -84,7 +84,8 @@ def show_welcome():
 • Prevent downtime with proactive monitoring
 
 [bold yellow]Quick Start:[/bold yellow]
-  [cyan]tars health[/cyan]      - Check cluster health
+  [cyan]tars setup[/cyan]      - Verify installation and configuration
+  [cyan]tars health[/cyan]     - Check cluster health
   [cyan]tars triage[/cyan]     - Quick incident overview
   [cyan]tars watch[/cyan]      - Real-time pod monitoring
   [cyan]tars spike[/cyan]      - Monitor resource spikes
@@ -116,6 +117,66 @@ Keep responses concise and actionable.
     
     response = model.generate_content(tars_prompt)
     return response.text
+
+@app.command()
+def setup():
+    """Verify T.A.R.S setup and configuration"""
+    console.print("\n[bold cyan]T.A.R.S Setup Verification[/bold cyan]\n")
+    
+    all_good = True
+    
+    # Check 1: Gemini API Key
+    console.print("[bold yellow]1. Checking Gemini API Key...[/bold yellow]")
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        console.print("   [bold green]✓[/bold green] GEMINI_API_KEY is set")
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-pro')
+            model.generate_content("test")
+            console.print("   [bold green]✓[/bold green] API key is valid\n")
+        except Exception as e:
+            console.print(f"   [bold red]✗[/bold red] API key invalid: {e}\n")
+            all_good = False
+    else:
+        console.print("   [bold red]✗[/bold red] GEMINI_API_KEY not set")
+        console.print("   [dim]Get free key at: https://makersuite.google.com/app/apikey[/dim]")
+        console.print("   [dim]Set it: export GEMINI_API_KEY='your-key'[/dim]\n")
+        all_good = False
+    
+    # Check 2: kubectl
+    console.print("[bold yellow]2. Checking kubectl configuration...[/bold yellow]")
+    try:
+        config.load_kube_config()
+        console.print("   [bold green]✓[/bold green] kubectl config loaded")
+        
+        v1 = client.CoreV1Api()
+        version = client.VersionApi().get_code()
+        console.print(f"   [bold green]✓[/bold green] Cluster connected: {version.git_version}")
+        
+        nodes = v1.list_node()
+        console.print(f"   [bold green]✓[/bold green] Nodes accessible: {len(nodes.items)} node(s)\n")
+    except Exception as e:
+        console.print(f"   [bold red]✗[/bold red] kubectl not configured: {e}")
+        console.print("   [dim]Configure kubectl to connect to your cluster[/dim]\n")
+        all_good = False
+    
+    # Check 3: Python version
+    console.print("[bold yellow]3. Checking Python version...[/bold yellow]")
+    import sys
+    py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    if sys.version_info >= (3, 8):
+        console.print(f"   [bold green]✓[/bold green] Python {py_version}\n")
+    else:
+        console.print(f"   [bold red]✗[/bold red] Python {py_version} (requires 3.8+)\n")
+        all_good = False
+    
+    # Final status
+    if all_good:
+        console.print("[bold green]✓ All checks passed! T.A.R.S is ready.[/bold green]")
+        console.print("[dim]Try: tars health[/dim]\n")
+    else:
+        console.print("[bold red]✗ Setup incomplete. Fix the issues above.[/bold red]\n")
 
 @app.command()
 def check():

@@ -43,22 +43,37 @@ pip install -e .
 
 ## Quick Start
 
-```bash
-# Check cluster health
-tars health
+1. **Install T.A.R.S**:
+   ```bash
+   pip install git+https://github.com/orathore93-hue/tars-cli.git
+   ```
 
-# Quick incident overview
-tars triage
+2. **Get Gemini API Key** (free):
+   - Visit: https://makersuite.google.com/app/apikey
+   - Create API key
+   - Set environment variable:
+     ```bash
+     export GEMINI_API_KEY="your-api-key-here"
+     ```
 
-# Real-time pod monitoring
-tars watch
+3. **Configure kubectl**:
+   ```bash
+   kubectl config current-context  # Verify cluster access
+   ```
 
-# Monitor resource spikes
-tars spike
+4. **Verify setup**:
+   ```bash
+   tars setup
+   ```
 
-# Get help
-tars --help
-```
+5. **Start monitoring**:
+   ```bash
+   tars health      # Check cluster health
+   tars triage      # Quick incident overview
+   tars watch       # Real-time pod monitoring
+   tars spike       # Monitor resource spikes
+   tars --help      # See all commands
+   ```
 
 ## Configuration
 
