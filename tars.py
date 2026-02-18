@@ -72,7 +72,7 @@ def show_welcome():
     console.clear()
     console.print(TARS_ASCII)
     console.print(TARS_ROBOT)
-    console.print(f"\n[bold cyan]TARS:[/bold cyan] [italic]{random.choice(WELCOME_MESSAGES)}[/italic]")
+    console.print(f"\n[bold green]TARS:[/bold cyan] [italic]{random.choice(WELCOME_MESSAGES)}[/italic]")
     console.print("[dim italic]Your companion while you Kubersnaut.[/dim italic]\n")
     
     # What TARS does
@@ -238,9 +238,9 @@ def pods(namespace: str = typer.Option("default", help="Namespace to check")):
                     memory = pod.spec.containers[0].resources.requests.get('memory', 'N/A')
             
             if status != "Running":
-                issues.append(f"Pod {pod.metadata.name} is {status}")
+                issues.append(f"[red]Pod {pod.metadata.name} is {status}[/red]")
             if restarts > 5:
-                issues.append(f"Pod {pod.metadata.name} has {restarts} restarts")
+                issues.append(f"[red]Pod {pod.metadata.name} has {restarts} restarts[/red]")
             
             status_color = "green" if status == "Running" else "red"
             table.add_row(
@@ -254,11 +254,11 @@ def pods(namespace: str = typer.Option("default", help="Namespace to check")):
         console.print(table)
         
         if issues:
-            console.print("\n[bold red]Issues detected:[/bold red]")
+            console.print("\n[bold red]⚠ Issues detected:[/bold red]")
             for issue in issues:
                 console.print(f"  • {issue}")
         else:
-            console.print("\n[bold green]All pods healthy! Even I'm impressed.[/bold green]")
+            console.print("\n[bold green]✓ All pods healthy! Even I'm impressed.[/bold green]")
             
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
@@ -270,7 +270,7 @@ def watch(namespace: str = typer.Option("default", help="Namespace to watch"), i
         config.load_kube_config()
         v1 = client.CoreV1Api()
         
-        console.print("[bold cyan]TARS watching your cluster... Press Ctrl+C to stop[/bold cyan]\n")
+        console.print("[bold green]TARS: [/bold green]watching your cluster... Press Ctrl+C to stop[/bold cyan]\n")
         
         while True:
             pods = v1.list_namespaced_pod(namespace)
@@ -299,7 +299,7 @@ def watch(namespace: str = typer.Option("default", help="Namespace to watch"), i
             time.sleep(interval)
             
     except KeyboardInterrupt:
-        console.print("\n[bold cyan]TARS stopped watching. I'll be here if you need me.[/bold cyan]")
+        console.print("\n[bold green]TARS: [/bold green]stopped watching. I'll be here if you need me.[/bold cyan]")
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
 
@@ -310,7 +310,7 @@ def analyze(namespace: str = typer.Option("default", help="Namespace to analyze"
         config.load_kube_config()
         v1 = client.CoreV1Api()
         
-        console.print("[bold cyan]TARS analyzing cluster...[/bold cyan]\n")
+        console.print("[bold green]TARS: [/bold green]analyzing cluster...[/bold cyan]\n")
         
         pods = v1.list_namespaced_pod(namespace)
         
@@ -330,10 +330,10 @@ def analyze(namespace: str = typer.Option("default", help="Namespace to analyze"
         
         prompt = f"Kubernetes cluster issues in namespace '{namespace}':\n" + "\n".join(issues)
         
-        with console.status("[bold cyan]TARS thinking...[/bold cyan]"):
+        with console.status("[bold green]TARS: [/bold green]thinking...[/bold cyan]"):
             response = get_gemini_response(prompt)
         
-        console.print(Panel(response, title="[bold cyan]TARS Analysis[/bold cyan]", border_style="cyan"))
+        console.print(Panel(response, title="[bold green]TARS: [/bold green]Analysis[/bold cyan]", border_style="cyan"))
         
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
@@ -355,9 +355,9 @@ def logs(pod_name: str, namespace: str = typer.Option("default", help="Namespace
         if os.getenv("GEMINI_API_KEY"):
             analyze_logs = typer.confirm("\nWant TARS to analyze these logs?")
             if analyze_logs:
-                with console.status("[bold cyan]TARS reading logs...[/bold cyan]"):
+                with console.status("[bold green]TARS: [/bold green]reading logs...[/bold cyan]"):
                     response = get_gemini_response(f"Analyze these Kubernetes pod logs and identify any issues:\n{logs}")
-                console.print(Panel(response, title="[bold cyan]TARS Log Analysis[/bold cyan]", border_style="cyan"))
+                console.print(Panel(response, title="[bold green]TARS: [/bold green]Log Analysis[/bold cyan]", border_style="cyan"))
         
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
@@ -404,7 +404,7 @@ def health():
         config.load_kube_config()
         v1 = client.CoreV1Api()
         
-        console.print("[bold cyan]TARS running health diagnostics...[/bold cyan]\n")
+        console.print("[bold green]TARS:[/bold green] Running health diagnostics...\n")
         
         # Check nodes
         nodes = v1.list_node()
@@ -438,9 +438,9 @@ def health():
         console.print(table)
         
         if failed_pods > 0:
-            console.print(f"\n[bold yellow]TARS recommends running: tars analyze[/bold yellow]")
+            console.print(f"\n[bold red]TARS:[/bold red] [red]⚠ {failed_pods} failed pod(s) detected. Run: tars analyze[/red]")
         else:
-            console.print(f"\n[bold green]Cluster health is optimal. I'd give it a 95% rating.[/bold green]")
+            console.print(f"\n[bold green]TARS:[/bold green] Cluster health is optimal. I'd give it a 95% rating.")
         
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
@@ -452,7 +452,7 @@ def diagnose(pod_name: str, namespace: str = typer.Option("default", help="Names
         config.load_kube_config()
         v1 = client.CoreV1Api()
         
-        console.print(f"[bold cyan]TARS diagnosing {pod_name}...[/bold cyan]\n")
+        console.print(f"[bold green]TARS: [/bold green]diagnosing {pod_name}...[/bold cyan]\n")
         
         pod = v1.read_namespaced_pod(pod_name, namespace)
         
@@ -476,9 +476,9 @@ def diagnose(pod_name: str, namespace: str = typer.Option("default", help="Names
         
         # AI diagnosis
         if os.getenv("GEMINI_API_KEY"):
-            with console.status("[bold cyan]TARS analyzing...[/bold cyan]"):
+            with console.status("[bold green]TARS: [/bold green]analyzing...[/bold cyan]"):
                 response = get_gemini_response(f"Diagnose this Kubernetes pod:\n" + "\n".join(info))
-            console.print(Panel(response, title="[bold cyan]TARS Diagnosis[/bold cyan]", border_style="cyan"))
+            console.print(Panel(response, title="[bold green]TARS: [/bold green]Diagnosis[/bold cyan]", border_style="cyan"))
         
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
@@ -509,7 +509,7 @@ def metrics(namespace: str = typer.Option("default", help="Namespace to check"))
         v1 = client.CoreV1Api()
         custom_api = client.CustomObjectsApi()
         
-        console.print("[bold cyan]TARS checking resource metrics...[/bold cyan]\n")
+        console.print("[bold green]TARS: [/bold green]checking resource metrics...[/bold cyan]\n")
         
         # Get metrics from metrics-server
         try:
@@ -589,8 +589,8 @@ def spike(
         config.load_kube_config()
         custom_api = client.CustomObjectsApi()
         
-        console.print(f"[bold cyan]TARS monitoring for spikes (CPU > {cpu_threshold} cores, Memory > {memory_threshold}Mi)...[/bold cyan]")
-        console.print("[bold cyan]Press Ctrl+C to stop[/bold cyan]\n")
+        console.print(f"[bold green]TARS:[/bold green] Monitoring for spikes (CPU > {cpu_threshold} cores, Memory > {memory_threshold}Mi)...")
+        console.print("[dim]Press Ctrl+C to stop[/dim]\n")
         
         spike_history = {}
         
@@ -628,11 +628,11 @@ def spike(
                     
                     # Check for spikes
                     if total_cpu > cpu_threshold:
-                        spikes_detected.append(f"[bold red]🔥 CPU SPIKE[/bold red] {pod_name}: {total_cpu:.3f} cores")
+                        spikes_detected.append(f"[bold red]🔥 CPU SPIKE:[/bold red] [red]{pod_name}: {total_cpu:.3f} cores[/red]")
                         spike_history[pod_name] = spike_history.get(pod_name, 0) + 1
                     
                     if total_memory > memory_threshold:
-                        spikes_detected.append(f"[bold red]🔥 MEMORY SPIKE[/bold red] {pod_name}: {total_memory:.1f}Mi")
+                        spikes_detected.append(f"[bold red]🔥 MEMORY SPIKE:[/bold red] [red]{pod_name}: {total_memory:.1f}Mi[/red]")
                         spike_history[pod_name] = spike_history.get(pod_name, 0) + 1
                 
                 if spikes_detected:
@@ -649,7 +649,7 @@ def spike(
                 time.sleep(interval)
         
     except KeyboardInterrupt:
-        console.print("\n\n[bold cyan]TARS stopped monitoring.[/bold cyan]")
+        console.print("\n\n[bold green]TARS: [/bold green]stopped monitoring.[/bold cyan]")
         if spike_history:
             console.print("\n[bold yellow]Spike Summary:[/bold yellow]")
             for pod, count in sorted(spike_history.items(), key=lambda x: x[1], reverse=True):
@@ -664,7 +664,7 @@ def top(namespace: str = typer.Option("default", help="Namespace to check"), lim
         config.load_kube_config()
         custom_api = client.CustomObjectsApi()
         
-        console.print("[bold cyan]TARS calculating top resource consumers...[/bold cyan]\n")
+        console.print("[bold green]TARS: [/bold green]calculating top resource consumers...[/bold cyan]\n")
         
         try:
             metrics = custom_api.list_namespaced_custom_object(
@@ -1063,7 +1063,7 @@ def creator():
 ╚═══════════════════════════════════════════════════════╝[/bold cyan]
     """
     console.print(creator_info)
-    console.print("\n[bold cyan]TARS:[/bold cyan] [italic]Yes, I was built by a human. Surprising, I know.[/italic]\n")
+    console.print("\n[bold green]TARS:[/bold cyan] [italic]Yes, I was built by a human. Surprising, I know.[/italic]\n")
 
 @app.command()
 def restart(pod_name: str, namespace: str = typer.Option("default", help="Namespace")):
@@ -1077,7 +1077,7 @@ def restart(pod_name: str, namespace: str = typer.Option("default", help="Namesp
             console.print("[yellow]Restart cancelled[/yellow]")
             return
         
-        console.print(f"[bold cyan]TARS restarting {pod_name}...[/bold cyan]")
+        console.print(f"[bold green]TARS: [/bold green]restarting {pod_name}...[/bold cyan]")
         v1.delete_namespaced_pod(pod_name, namespace)
         console.print(f"[bold green]✓[/bold green] Pod {pod_name} deleted. Controller will recreate it.")
         
@@ -1091,7 +1091,7 @@ def scale(deployment: str, replicas: int, namespace: str = typer.Option("default
         config.load_kube_config()
         apps_v1 = client.AppsV1Api()
         
-        console.print(f"[bold cyan]TARS scaling {deployment} to {replicas} replicas...[/bold cyan]")
+        console.print(f"[bold green]TARS: [/bold green]scaling {deployment} to {replicas} replicas...[/bold cyan]")
         
         body = {"spec": {"replicas": replicas}}
         apps_v1.patch_namespaced_deployment_scale(deployment, namespace, body)
@@ -1307,7 +1307,7 @@ def network(namespace: str = typer.Option("default", help="Namespace")):
         v1 = client.CoreV1Api()
         networking_v1 = client.NetworkingV1Api()
         
-        console.print("[bold cyan]TARS checking network configuration...[/bold cyan]\n")
+        console.print("[bold green]TARS: [/bold green]checking network configuration...[/bold cyan]\n")
         
         # Check services without endpoints
         services = v1.list_namespaced_service(namespace)
@@ -1414,7 +1414,7 @@ def triage(namespace: str = typer.Option("default", help="Namespace")):
         config.load_kube_config()
         v1 = client.CoreV1Api()
         
-        console.print("[bold cyan]TARS performing incident triage...[/bold cyan]\n")
+        console.print("[bold green]TARS:[/bold green] Performing incident triage...\n")
         
         pods = v1.list_namespaced_pod(namespace)
         
@@ -1434,15 +1434,15 @@ def triage(namespace: str = typer.Option("default", help="Namespace")):
             
             if status == "Failed":
                 issues["failed"] += 1
-                critical_pods.append(f"[red]FAILED[/red]: {pod.metadata.name}")
+                critical_pods.append(f"[bold red]FAILED:[/bold red] [red]{pod.metadata.name}[/red]")
             
             if status == "Pending":
                 issues["pending"] += 1
-                critical_pods.append(f"[yellow]PENDING[/yellow]: {pod.metadata.name}")
+                critical_pods.append(f"[bold red]PENDING:[/bold red] [red]{pod.metadata.name}[/red]")
             
             if restarts > 10:
                 issues["high_restarts"] += 1
-                critical_pods.append(f"[yellow]HIGH RESTARTS ({restarts})[/yellow]: {pod.metadata.name}")
+                critical_pods.append(f"[bold red]HIGH RESTARTS ({restarts}):[/bold red] [red]{pod.metadata.name}[/red]")
             
             if pod.status.container_statuses:
                 for container in pod.status.container_statuses:
@@ -1488,7 +1488,7 @@ def rollback(deployment: str, namespace: str = typer.Option("default", help="Nam
         config.load_kube_config()
         apps_v1 = client.AppsV1Api()
         
-        console.print(f"[bold cyan]TARS rolling back {deployment}...[/bold cyan]")
+        console.print(f"[bold green]TARS: [/bold green]rolling back {deployment}...[/bold cyan]")
         
         # Get rollout history
         result = os.popen(f"kubectl rollout history deployment/{deployment} -n {namespace}").read()
@@ -1520,7 +1520,7 @@ def drain(node_name: str):
             console.print("[yellow]Drain cancelled[/yellow]")
             return
         
-        console.print(f"[bold cyan]TARS draining node {node_name}...[/bold cyan]")
+        console.print(f"[bold green]TARS: [/bold green]draining node {node_name}...[/bold cyan]")
         os.system(f"kubectl drain {node_name} --ignore-daemonsets --delete-emptydir-data")
         
         console.print(f"\n[bold green]✓[/bold green] Node {node_name} drained successfully")
@@ -1535,7 +1535,7 @@ def cordon(node_name: str):
     try:
         config.load_kube_config()
         
-        console.print(f"[bold cyan]TARS cordoning node {node_name}...[/bold cyan]")
+        console.print(f"[bold green]TARS: [/bold green]cordoning node {node_name}...[/bold cyan]")
         os.system(f"kubectl cordon {node_name}")
         
         console.print(f"[bold green]✓[/bold green] Node {node_name} marked unschedulable")
@@ -1549,7 +1549,7 @@ def uncordon(node_name: str):
     try:
         config.load_kube_config()
         
-        console.print(f"[bold cyan]TARS uncordoning node {node_name}...[/bold cyan]")
+        console.print(f"[bold green]TARS: [/bold green]uncordoning node {node_name}...[/bold cyan]")
         os.system(f"kubectl uncordon {node_name}")
         
         console.print(f"[bold green]✓[/bold green] Node {node_name} marked schedulable")
@@ -1563,7 +1563,7 @@ def exec(pod_name: str, namespace: str = typer.Option("default", help="Namespace
     try:
         config.load_kube_config()
         
-        console.print(f"[bold cyan]TARS executing in {pod_name}...[/bold cyan]")
+        console.print(f"[bold green]TARS: [/bold green]executing in {pod_name}...[/bold cyan]")
         os.system(f"kubectl exec -it {pod_name} -n {namespace} -- {command}")
         
     except Exception as e:
@@ -1575,7 +1575,7 @@ def port_forward(pod_name: str, ports: str, namespace: str = typer.Option("defau
     try:
         config.load_kube_config()
         
-        console.print(f"[bold cyan]TARS forwarding ports {ports} to {pod_name}...[/bold cyan]")
+        console.print(f"[bold green]TARS: [/bold green]forwarding ports {ports} to {pod_name}...[/bold cyan]")
         console.print("[dim]Press Ctrl+C to stop[/dim]\n")
         os.system(f"kubectl port-forward {pod_name} {ports} -n {namespace}")
         
@@ -1588,7 +1588,7 @@ def describe(resource: str, name: str, namespace: str = typer.Option("default", 
     try:
         config.load_kube_config()
         
-        console.print(f"[bold cyan]TARS describing {resource}/{name}...[/bold cyan]\n")
+        console.print(f"[bold green]TARS: [/bold green]describing {resource}/{name}...[/bold cyan]\n")
         os.system(f"kubectl describe {resource} {name} -n {namespace}")
         
     except Exception as e:
