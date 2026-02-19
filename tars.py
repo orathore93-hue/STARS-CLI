@@ -4458,7 +4458,7 @@ def alert_webhook(
                     message = {
                         "text": f"🚨 Alert: Pod {pod.metadata.name} is {pod.status.phase} in namespace {namespace}"
                     }
-                    requests.post(webhook_url, json=message)
+                    requests.post(webhook_url, json=message, timeout=30)
                     console.print(f"[yellow]Alert sent:[/yellow] {pod.metadata.name}")
             
             time.sleep(interval)
@@ -5136,13 +5136,18 @@ def replay(command_id: int = typer.Argument(..., help="Command ID to replay")):
         command = command_entry['command']
         console.print(f"[cyan]Replaying:[/cyan] {command}")
         
-        # Execute command
-        result = subprocess.run(command, shell=True)
+        # Execute command - sanitize to prevent injection
+        sanitized_cmd = sanitize_command(command)
+        result = subprocess.run(sanitized_cmd, shell=False, capture_output=True, text=True)
         
         if result.returncode == 0:
             console.print("[green]✓ Command executed successfully[/green]")
+            if result.stdout:
+                console.print(result.stdout)
         else:
             console.print(f"[red]✗ Command failed with exit code {result.returncode}[/red]")
+            if result.stderr:
+                console.print(result.stderr)
         
     except Exception as e:
         console.print(f"[red]✗ Error: {e}[/red]")
