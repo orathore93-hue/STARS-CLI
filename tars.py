@@ -238,6 +238,14 @@ def pods(namespace: str = typer.Option("default", help="Namespace to check")):
             status = pod.status.phase
             restarts = sum([c.restart_count for c in pod.status.container_statuses]) if pod.status.container_statuses else 0
             
+            # Check for CrashLoopBackOff
+            container_state = None
+            if pod.status.container_statuses:
+                for c in pod.status.container_statuses:
+                    if c.state.waiting and c.state.waiting.reason == "CrashLoopBackOff":
+                        container_state = "CrashLoopBackOff"
+                        break
+            
             # Get resource requests
             cpu = "N/A"
             memory = "N/A"
@@ -246,7 +254,10 @@ def pods(namespace: str = typer.Option("default", help="Namespace to check")):
                     cpu = pod.spec.containers[0].resources.requests.get('cpu', 'N/A')
                     memory = pod.spec.containers[0].resources.requests.get('memory', 'N/A')
             
-            if status != "Running":
+            if container_state == "CrashLoopBackOff":
+                issues.append(f"[red]Pod {pod.metadata.name} is in CrashLoopBackOff[/red]")
+                status = container_state
+            elif status != "Running":
                 issues.append(f"[red]Pod {pod.metadata.name} is {status}[/red]")
             if restarts > 5:
                 issues.append(f"[red]Pod {pod.metadata.name} has {restarts} restarts[/red]")
