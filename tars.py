@@ -3984,5 +3984,154 @@ def prom_export(
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
 
+@app.command()
+def cardinality(
+    url: str = typer.Option(None, help="Prometheus URL"),
+    threshold: int = typer.Option(1000, help="High cardinality threshold"),
+    top: int = typer.Option(20, help="Show top N metrics")
+):
+    """Check for high cardinality metrics in Prometheus"""
+    try:
+        prom = get_prometheus_client(url)
+        
+        console.print("\n[bold cyan]Checking High Cardinality Metrics...[/bold cyan]\n")
+        
+        # Get all metric names
+        metrics = prom.all_metrics()
+        
+        cardinality_data = []
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console
+        ) as progress:
+            task = progress.add_task(f"Analyzing {len(metrics)} metrics...", total=len(metrics))
+            
+            for metric in metrics:
+                try:
+                    # Query to get cardinality
+                    result = prom.custom_query(f'count({metric})')
+                    if result and len(result) > 0:
+                        count = int(float(result[0]['value'][1]))
+                        cardinality_data.append({
+                            'metric': metric,
+                            'cardinality': count
+                        })
+                    progress.advance(task)
+                except:
+                    progress.advance(task)
+                    continue
+        
+        # Sort by cardinality
+        cardinality_data.sort(key=lambda x: x['cardinality'], reverse=True)
+        
+        # Display results
+        table = Table(title="High Cardinality Metrics")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Cardinality", style="yellow")
+        table.add_column("Status", style="red")
+        
+        high_cardinality_count = 0
+        
+        for item in cardinality_data[:top]:
+            status = "⚠ HIGH" if item['cardinality'] > threshold else "✓ OK"
+            status_color = "red" if item['cardinality'] > threshold else "green"
+            
+            if item['cardinality'] > threshold:
+                high_cardinality_count += 1
+            
+            table.add_row(
+                item['metric'],
+                f"{item['cardinality']:,}",
+                f"[{status_color}]{status}[/{status_color}]"
+            )
+        
+        console.print(table)
+        
+        # Summary
+        console.print(f"\n[bold]Summary:[/bold]")
+        console.print(f"Total metrics analyzed: [yellow]{len(cardinality_data)}[/yellow]")
+        console.print(f"High cardinality metrics (>{threshold}): [red]{high_cardinality_count}[/red]")
+        
+        if high_cardinality_count > 0:
+            console.print(f"\n[yellow]⚠ Warning:[/yellow] High cardinality metrics can impact Prometheus performance")
+            console.print("[dim]Consider reducing labels or aggregating metrics[/dim]")
+        else:
+            console.print(f"\n[green]✓ All metrics are within acceptable cardinality limits[/green]")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def cardinality_labels(
+    metric: str = typer.Argument(..., help="Metric name to analyze"),
+    url: str = typer.Option(None, help="Prometheus URL"),
+    top: int = typer.Option(10, help="Show top N labels")
+):
+    """Analyze label cardinality for a specific metric"""
+    try:
+        prom = get_prometheus_client(url)
+        
+        console.print(f"\n[bold cyan]Label Cardinality Analysis: {metric}[/bold cyan]\n")
+        
+        # Get all series for this metric
+        result = prom.custom_query(metric)
+        
+        if not result:
+            console.print(f"[yellow]No data found for metric: {metric}[/yellow]")
+            return
+        
+        # Analyze labels
+        label_values = {}
+        
+        for series in result:
+            for label, value in series['metric'].items():
+                if label == '__name__':
+                    continue
+                if label not in label_values:
+                    label_values[label] = set()
+                label_values[label].add(value)
+        
+        # Calculate cardinality per label
+        label_cardinality = [
+            {'label': label, 'cardinality': len(values)}
+            for label, values in label_values.items()
+        ]
+        
+        label_cardinality.sort(key=lambda x: x['cardinality'], reverse=True)
+        
+        # Display results
+        table = Table(title=f"Label Cardinality for {metric}")
+        table.add_column("Label", style="cyan")
+        table.add_column("Unique Values", style="yellow")
+        table.add_column("Impact", style="magenta")
+        
+        for item in label_cardinality[:top]:
+            impact = "HIGH" if item['cardinality'] > 100 else "MEDIUM" if item['cardinality'] > 10 else "LOW"
+            impact_color = "red" if item['cardinality'] > 100 else "yellow" if item['cardinality'] > 10 else "green"
+            
+            table.add_row(
+                item['label'],
+                str(item['cardinality']),
+                f"[{impact_color}]{impact}[/{impact_color}]"
+            )
+        
+        console.print(table)
+        
+        # Total cardinality
+        total_series = len(result)
+        console.print(f"\nTotal time series: [yellow]{total_series}[/yellow]")
+        
+        # Recommendations
+        high_cardinality_labels = [l for l in label_cardinality if l['cardinality'] > 100]
+        if high_cardinality_labels:
+            console.print(f"\n[yellow]⚠ Recommendations:[/yellow]")
+            for label in high_cardinality_labels:
+                console.print(f"  • Consider reducing cardinality of label '[cyan]{label['label']}[/cyan]' ({label['cardinality']} unique values)")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
 if __name__ == "__main__":
     app()
