@@ -1,363 +1,386 @@
-# T.A.R.S 🤖
+# 🤖 TARS CLI - The SRE's Best Friend
 
-<div align="center">
+> *"This is no time for caution."* - TARS
 
-```
-████████╗     █████╗     ██████╗     ███████╗
-╚══██╔══╝    ██╔══██╗    ██╔══██╗    ██╔════╝
-   ██║       ███████║    ██████╔╝    ███████╗
-   ██║   ██  ██╔══██║    ██╔══██╗    ╚════██║
-   ██║   ██  ██║  ██║    ██║  ██║    ███████║
-   ╚═╝   ╚═  ╚═╝  ╚═╝    ╚═╝  ╚═╝    ╚══════╝
-```
-
-### **Technical Assistance & Reliability System**
-
-*"Humor setting: 90%. Let's do this."*
+**T**echnical **A**ssistance & **R**eliability **S**ystem - Your AI-powered Kubernetes companion for on-call engineers and SREs.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Kubernetes](https://img.shields.io/badge/kubernetes-compatible-326CE5.svg)](https://kubernetes.io/)
-[![AI Powered](https://img.shields.io/badge/AI-Gemini-orange.svg)](https://ai.google.dev/)
 
-**Your sarcastic AI companion for Kubernetes monitoring** 🚀
+## 🎯 Why TARS?
 
-[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Demo](#-demo) • [Contributing](#-contributing)
+TARS is built by SREs, for SREs. It's not just another kubectl wrapper - it's your intelligent incident response partner that:
 
-</div>
+- **Thinks like an SRE** - Prioritizes what matters during incidents
+- **Saves time** - Automates repetitive diagnostic tasks
+- **Reduces MTTR** - AI-powered analysis and recommendations
+- **Prevents incidents** - Proactive monitoring and alerting
+- **Documents everything** - Auto-generates runbooks and incident reports
 
----
-
-## 🎬 What Makes T.A.R.S Different?
-
-T.A.R.S isn't just another monitoring tool. It combines:
-- 🧠 **AI-Powered Analysis** - Gemini integration for intelligent troubleshooting
-- 😏 **Personality** - Sarcastic, witty responses that make debugging less painful
-- ⚡ **Real-Time** - Live monitoring with instant spike detection
-- 🎯 **On-Call Ready** - Built for 3 AM incidents when you need answers fast
-- 🎨 **Beautiful CLI** - Rich terminal UI that doesn't look like 1995
-
-
-## ✨ Features
-
-<table>
-<tr>
-<td width="50%">
-
-### 🔍 Smart Monitoring
-- Real-time pod health tracking
-- Automatic issue detection
-- CrashLoop & OOM detection
-- Resource spike alerts
-- Multi-namespace support
-
-</td>
-<td width="50%">
-
-### 🧠 AI-Powered
-- Gemini integration
-- Intelligent log analysis
-- Root cause suggestions
-- TARS personality responses
-- Context-aware troubleshooting
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### ⚡ Developer Experience
-- Beautiful terminal UI
-- Color-coded alerts
-- Live dashboards
-- One-command setup
-- Zero config needed
-
-</td>
-<td width="50%">
-
-### ☁️ Cloud Native
-- GKE support
-- EKS support
-- Any K8s cluster
-- kubectl integration
-- Metrics API support
-
-</td>
-</tr>
-</table>
-
----
-
-## 🚀 Installation
+## 🚀 Quick Start
 
 ```bash
-pip3 install git+https://github.com/orathore93-hue/tars-cli.git
+# Install
+pip install tars-cli
+
+# Setup (one-time)
+export GEMINI_API_KEY='your-key'  # Get free key at https://makersuite.google.com
+tars setup
+
+# Start monitoring
+tars oncall
 ```
 
-**That's it.** No complex setup, no YAML hell, no configuration files.
+## 💪 Core Features for SREs
 
-### 🎯 Enable Autocompletion (Optional)
+### 🚨 Incident Response
 
-**Bash:**
 ```bash
-tars --install-completion bash
-source ~/.bashrc
+# Quick triage - see all critical issues at once
+tars triage
+
+# On-call dashboard - everything you need in one view
+tars oncall
+
+# Deep dive into a problematic pod
+tars diagnose <pod-name>
+
+# Generate incident runbook
+tars runbook <pod-name>
+
+# AI-powered incident report
+tars incident-report
 ```
 
-**Zsh:**
+### 📊 Real-Time Monitoring
+
 ```bash
-tars --install-completion zsh
-source ~/.zshrc
+# Live pod monitoring
+tars watch
+
+# Resource spike detection
+tars spike
+
+# Custom alerting with thresholds
+tars alert --threshold-cpu 80 --threshold-memory 85 --interval 30
+
+# Cluster health pulse
+tars pulse
+
+# Timeline of recent events
+tars timeline
 ```
 
-**Fish:**
+### 🔧 Auto-Remediation
+
 ```bash
-tars --install-completion fish
+# Auto-fix common issues (dry-run by default)
+tars autofix
+
+# Apply fixes automatically
+tars autofix --no-dry-run
+
+# AI-powered smart scaling
+tars smart-scale <deployment>
+
+# Quick restart
+tars restart <pod-name>
 ```
 
-Now you can press `Tab` to autocomplete TARS commands!
+### 📸 Incident Documentation
 
----
-
-## ⚡ Quick Start
-
-### 1️⃣ Get Your Free API Key
 ```bash
-# Visit: https://makersuite.google.com/app/apikey
-export GEMINI_API_KEY="your-key-here"
+# Take complete cluster snapshot
+tars snapshot
+
+# Generate runbook for any pod
+tars runbook <pod-name>
+
+# Create incident report with AI analysis
+tars incident-report
+
+# Show cluster story - what happened today?
+tars story
 ```
 
-### 2️⃣ Verify Setup
+### 🔍 Advanced Analysis
+
 ```bash
+# Blast radius analysis
+tars blast <pod-name>
+
+# Predict future issues
+tars forecast
+
+# Chaos engineering insights
+tars chaos
+
+# Compare two clusters
+tars diff <context1> <context2>
+```
+
+### 📈 SRE Metrics
+
+```bash
+# Service Level Objectives
+tars slo
+
+# Service Level Indicators
+tars sli
+
+# Resource usage comparison
+tars compare
+
+# Top resource consumers
+tars top
+```
+
+## 🎓 Real-World SRE Scenarios
+
+### Scenario 1: 3 AM Page - Pod CrashLooping
+
+```bash
+# Quick triage
+tars triage
+# Shows: CrashLoopBackOff detected in payment-service
+
+# Deep diagnosis
+tars diagnose payment-service
+# AI analysis: "OOMKilled - memory limit too low"
+
+# Check blast radius
+tars blast payment-service
+# Shows: Affects checkout flow, 3 dependent services
+
+# Auto-fix
+tars autofix
+# Recommendation: Increase memory limit to 512Mi
+
+# Generate incident report
+tars incident-report
+```
+
+### Scenario 2: Proactive Monitoring
+
+```bash
+# Start alert monitoring
+tars alert --threshold-cpu 80 --threshold-memory 85
+
+# In another terminal, watch for spikes
+tars spike
+
+# Check SLO compliance
+tars slo
+```
+
+### Scenario 3: Capacity Planning
+
+```bash
+# Take snapshot for analysis
+tars snapshot
+
+# Compare production vs staging
+tars diff prod-context staging-context
+
+# Forecast future issues
+tars forecast
+```
+
+### Scenario 4: Multi-Cluster Management
+
+```bash
+# Compare clusters
+tars diff us-east-1 us-west-2
+
+# Switch context and check health
+tars context
+tars health
+```
+
+## 🛠️ Installation & Setup
+
+### Prerequisites
+
+- Python 3.8+
+- kubectl configured
+- Kubernetes cluster access (GKE, EKS, or any K8s cluster)
+
+### Install
+
+```bash
+pip install tars-cli
+```
+
+### Configure
+
+```bash
+# Set Gemini API key (for AI features)
+export GEMINI_API_KEY='your-key'
+
+# Verify setup
 tars setup
 ```
 
-### 3️⃣ Start Monitoring
+### Optional: Shell Completion
+
 ```bash
-tars health      # Cluster health overview
-tars watch       # Live pod monitoring
-tars triage      # Incident response mode
-tars spike       # Resource spike detection
+# Bash
+tars --install-completion bash
+
+# Zsh
+tars --install-completion zsh
 ```
 
----
+## 📋 Command Reference
 
-## 🎮 Demo
-
-### Health Check
-```bash
-$ tars health
-TARS: Running health diagnostics...
-
-┏━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━┓
-┃ Metric       ┃ Value     ┃ Status ┃
-┡━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━┩
-│ Nodes        │ 3 total   │ ✓      │
-│ Pods Running │ 47/47     │ ✓      │
-│ Failed Pods  │ 0         │ ✓      │
-└──────────────┴───────────┴────────┘
-
-TARS: Cluster health is optimal. I'd give it a 95% rating.
-```
-
-### Spike Detection
-```bash
-$ tars spike
-TARS: Monitoring for spikes...
-
-[14:23:45]
-🔥 CPU SPIKE: api-server-7d9f: 2.341 cores
-🔥 MEMORY SPIKE: redis-cache-4k2: 1847Mi
-```
-
-### AI Analysis
-```bash
-$ tars analyze
-TARS: Analyzing cluster...
-
-╭─ TARS Analysis ─────────────────────────────╮
-│ Well, Developer, looks like your api-server    │
-│ is having an existential crisis. The pod    │
-│ is CrashLooping because it can't find its   │
-│ database connection. Check your secrets.    │
-│                                              │
-│ Recommendation: Verify DB_HOST env var.     │
-╰──────────────────────────────────────────────╯
-```
-
----
-
-## 🎯 Commands
-
-### 🔥 Unique Features (No Other CLI Has These!)
-
-| Command | Description | Why It's Special |
-|---------|-------------|------------------|
-| `tars pulse` | Live cluster heartbeat visualization | Real-time health pulse with ♥ animation |
-| `tars story` | Tell your cluster's story | Narrative view of what happened today |
-| `tars forecast` | Predict future issues | AI-powered trend analysis |
-| `tars blast <pod>` | Blast radius analysis | See impact if a resource fails |
-| `tars chaos` | Chaos engineering insights | Find weak points before they break |
-| `tars compare` | Compare namespaces | Visual bar charts of resource usage |
-| `tars timeline` | Events timeline | Last 30 minutes in chronological order |
-| `tars context` | Smart context switching | Instant metrics + bottleneck detection on switch |
-| `tars slo` | SLO monitoring | Error budget tracking for SRE teams |
-| `tars sli` | SLI dashboard | Service Level Indicators with targets |
-
-### 📊 Standard Monitoring
+### Essential Commands
 
 | Command | Description | Use Case |
 |---------|-------------|----------|
-| `tars setup` | Verify installation | First-time setup |
-| `tars health` | Cluster health check | Daily monitoring |
-| `tars watch` | Live pod monitoring | Real-time tracking |
-| `tars triage` | Incident overview | On-call response |
-| `tars spike` | Resource spike alerts | Performance issues |
-| `tars analyze` | AI troubleshooting | Root cause analysis |
-| `tars logs <pod>` | AI log analysis | Debugging |
-| `tars diagnose <pod>` | Deep pod inspection | Detailed investigation |
+| `tars oncall` | On-call dashboard | Start of shift |
+| `tars triage` | Quick incident overview | During incidents |
+| `tars health` | Cluster health check | Regular monitoring |
+| `tars diagnose <pod>` | Deep pod analysis | Troubleshooting |
+| `tars alert` | Real-time alerting | Proactive monitoring |
 
----
+### Monitoring
 
-## 🎨 Why Developers Love T.A.R.S
+| Command | Description |
+|---------|-------------|
+| `tars watch` | Live pod monitoring |
+| `tars spike` | Resource spike detection |
+| `tars pulse` | Cluster heartbeat |
+| `tars timeline` | Recent events |
+| `tars metrics` | Resource usage |
+| `tars top` | Top consumers |
 
-> *"Finally, a monitoring tool that doesn't make me want to cry at 3 AM"* - Every DevOps Engineer
+### Troubleshooting
 
-- **No YAML Configuration** - Just install and run
-- **Personality** - Makes debugging actually enjoyable
-- **AI-Powered** - Get answers, not just data
-- **Beautiful UI** - Terminal output that doesn't hurt your eyes
-- **Fast** - Real-time monitoring without lag
-- **Free** - Uses Gemini's free tier
+| Command | Description |
+|---------|-------------|
+| `tars errors` | Show all errors |
+| `tars crashloop` | CrashLoop detection |
+| `tars oom` | OOM killed pods |
+| `tars pending` | Pending pods analysis |
+| `tars logs <pod>` | AI-summarized logs |
+| `tars events` | Cluster events |
 
----
+### Operations
 
+| Command | Description |
+|---------|-------------|
+| `tars restart <pod>` | Restart pod |
+| `tars scale <dep> <n>` | Scale deployment |
+| `tars rollback <dep>` | Rollback deployment |
+| `tars drain <node>` | Drain node |
+| `tars autofix` | Auto-remediation |
 
-## 🛠️ Advanced Usage
+### Analysis
 
-### Custom Spike Thresholds
-```bash
-tars spike --cpu-threshold 2.0 --memory-threshold 2000 --interval 5
-```
+| Command | Description |
+|---------|-------------|
+| `tars analyze` | AI cluster analysis |
+| `tars blast <pod>` | Blast radius |
+| `tars forecast` | Predict issues |
+| `tars chaos` | Chaos insights |
+| `tars compare` | Compare namespaces |
 
-### Monitor Specific Namespace
-```bash
-tars watch --namespace production
-tars triage --namespace staging
-```
+### Documentation
 
-### AI-Powered Log Analysis
-```bash
-tars logs my-failing-pod --namespace default
-```
+| Command | Description |
+|---------|-------------|
+| `tars snapshot` | Cluster snapshot |
+| `tars runbook <pod>` | Generate runbook |
+| `tars incident-report` | Incident report |
+| `tars story` | Cluster story |
 
----
+### Multi-Cluster
+
+| Command | Description |
+|---------|-------------|
+| `tars context` | Switch contexts |
+| `tars diff <c1> <c2>` | Compare clusters |
+
+## 🎨 Features That Make TARS Unique
+
+### 1. AI-Powered Analysis
+- Uses Google Gemini for intelligent insights
+- Natural language explanations
+- Actionable recommendations
+
+### 2. SRE-First Design
+- Commands designed for incident response
+- Prioritizes critical information
+- Reduces cognitive load during incidents
+
+### 3. Auto-Remediation
+- Safe dry-run mode by default
+- Smart scaling decisions
+- Common issue detection and fixes
+
+### 4. Comprehensive Documentation
+- Auto-generated runbooks
+- Incident reports with AI analysis
+- Cluster snapshots for post-mortems
+
+### 5. Real-Time Monitoring
+- Custom alerting thresholds
+- Live dashboards
+- Resource spike detection
+
+### 6. Multi-Cluster Support
+- Context switching
+- Cluster comparison
+- Unified monitoring
+
+## 🔒 Security Best Practices
+
+TARS follows security best practices:
+
+- Uses kubectl config (no separate credentials)
+- Read-only by default (except explicit operations)
+- Dry-run mode for auto-remediation
+- No data sent to external services (except Gemini API for AI features)
+- API keys via environment variables only
 
 ## 🤝 Contributing
 
-We love contributions! T.A.R.S is built by developers, for developers.
-
-### 🌟 How You Can Help
-
-- 🐛 **Report bugs** - Found an issue? Let us know!
-- 💡 **Suggest features** - Have ideas? We want to hear them!
-- 🔧 **Submit PRs** - Code contributions welcome!
-- 📖 **Improve docs** - Help others understand T.A.R.S
-- ⭐ **Star the repo** - Show your support!
-- 📢 **Spread the word** - Share with your network
-
-### 🎯 Good First Issues
-
-New to the project? Look for issues labeled [`good first issue`](https://github.com/orathore93-hue/tars-cli/labels/good%20first%20issue)
-
-### 📚 Contributing Guide
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-### 🏆 Contributors
-
-Thanks to all our contributors! 🙏
-
-<a href="https://github.com/orathore93-hue/tars-cli/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=orathore93-hue/tars-cli" />
-</a>
-
----
-
-## 🎭 The TARS Personality
-
-T.A.R.S responds with personality, making debugging less painful:
-
-```
-TARS: "This is no time for caution."
-TARS: "Humor setting at 90%. Cluster monitoring initiated."
-TARS: "All systems operational. Sarcasm levels optimal."
-```
-
-T.A.R.S brings wit and intelligence to your terminal.
-
----
-
-## 📊 Roadmap
-
-- [ ] Slack/Discord notifications
-- [ ] Historical metrics tracking
-- [ ] Custom alert rules
-- [ ] Web dashboard
-- [ ] Multi-cluster support
-- [ ] Prometheus integration
-- [ ] Cost optimization suggestions
-- [ ] Auto-remediation actions
-
----
-
-## 🏆 Built With
-
-- [Typer](https://typer.tiangolo.com/) - CLI framework
-- [Rich](https://rich.readthedocs.io/) - Terminal formatting
-- [Kubernetes Python Client](https://github.com/kubernetes-client/python) - K8s API
-- [Google Gemini](https://ai.google.dev/) - AI analysis
-
----
-
-## 📜 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## 👨‍💻 Author
-
-**Omer Rathore**
-- 📧 Email: [orathore93@gmail.com](mailto:orathore93@gmail.com)
-- 💼 LinkedIn: [linkedin.com/in/omer-rathore-b82b9451](https://linkedin.com/in/omer-rathore-b82b9451)
-- 🐙 GitHub: [@orathore93-hue](https://github.com/orathore93-hue)
-- 🚀 Project: [T.A.R.S](https://github.com/orathore93-hue/tars-cli)
-
-**Get in touch for:**
-- 🤝 Collaboration opportunities
-- 💡 Feature requests
-- 🐛 Bug reports
-- 📢 Feedback and suggestions
-
----
-
-## ⭐ Show Your Support
-
-If T.A.R.S helped you debug at 3 AM, give it a ⭐!
+TARS is open source and welcomes contributions!
 
 ```bash
-# Share with your team
+# Clone repo
 git clone https://github.com/orathore93-hue/tars-cli.git
+cd tars-cli
+
+# Install in development mode
+pip install -e .
+
+# Make changes and test
+tars <command>
 ```
+
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) file
+
+## 🙏 Acknowledgments
+
+- Inspired by the TARS robot from Interstellar
+- Built for the SRE community
+- Powered by Google Gemini AI
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/orathore93-hue/tars-cli/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/orathore93-hue/tars-cli/discussions)
+- **Email**: orathore93@gmail.com
+
+## 🌟 Star History
+
+If TARS helps you during incidents, consider giving it a star! ⭐
 
 ---
 
-<div align="center">
+**Built with ❤️ by SREs, for SREs**
 
-**"Monitoring your cluster with intelligence and wit."** - T.A.R.S
-
-Made with 💚 for the DevOps community
-
-</div>
+*"Humor setting: 90%. Let's monitor this cluster."* - TARS
