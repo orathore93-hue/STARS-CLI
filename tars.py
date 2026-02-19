@@ -124,7 +124,7 @@ Keep responses concise and actionable.
 
 {prompt}"""
     
-    response = client.models.generate_content(model='gemini-2.0-flash-exp', contents=tars_prompt)
+    response = client.models.generate_content(model='gemini-1.5-flash', contents=tars_prompt)
     return response.text
 
 @app.command()
@@ -141,7 +141,7 @@ def setup():
         console.print("   [bold green]✓[/bold green] GEMINI_API_KEY is set")
         try:
             client = genai.Client(api_key=api_key)
-            client.models.generate_content(model='gemini-2.0-flash-exp', contents="test")
+            client.models.generate_content(model='gemini-1.5-flash', contents="test")
             console.print("   [bold green]✓[/bold green] API key is valid\n")
         except Exception as e:
             console.print(f"   [bold red]✗[/bold red] API key invalid: {e}\n")
