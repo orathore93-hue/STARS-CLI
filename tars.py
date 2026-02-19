@@ -2900,7 +2900,7 @@ def sli():
 @app.command()
 def version():
     """Show T.A.R.S version"""
-    console.print("\n[bold cyan]T.A.R.S v2.0.0 - God Mode Edition[/bold cyan]")
+    console.print("\n[bold cyan]T.A.R.S v2.1.0 - Observability Edition[/bold cyan]")
     console.print("[dim]Technical Assistance & Reliability System for SREs[/dim]")
     console.print("[dim]Built with 💚 for the DevOps community[/dim]\n")
 

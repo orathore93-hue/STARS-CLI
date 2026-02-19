@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="tars-cli",
-    version="2.0.0",
+    version="2.1.0",
     py_modules=["tars"],
     install_requires=[
         "typer",
