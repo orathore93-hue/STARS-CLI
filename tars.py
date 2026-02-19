@@ -3928,7 +3928,7 @@ def snapshot():
     try:
         config.load_kube_config()
         v1 = k8s_client.CoreV1Api()
-        apps_v1 = k8s_k8s_client.AppsV1Api()
+        apps_v1 = k8s_client.AppsV1Api()
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         snapshot_dir = f"tars_snapshot_{timestamp}"
@@ -4018,7 +4018,7 @@ def diff(context1: str = typer.Argument(...), context2: str = typer.Argument(...
         def get_cluster_info(ctx):
             config.load_kube_config(context=ctx)
             v1 = k8s_client.CoreV1Api()
-            apps_v1 = k8s_k8s_client.AppsV1Api()
+            apps_v1 = k8s_client.AppsV1Api()
             
             pods = v1.list_pod_for_all_namespaces()
             deployments = apps_v1.list_deployment_for_all_namespaces()
