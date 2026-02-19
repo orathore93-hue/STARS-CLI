@@ -13,8 +13,223 @@ import time
 from datetime import datetime, timedelta
 import sys
 import subprocess
+import functools
+import random
+import re
+import logging
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+import yaml
+import json
+import requests
+from functools import lru_cache
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 console = Console()
+
+# Setup logging
+TARS_DIR = Path.home() / ".tars"
+TARS_DIR.mkdir(exist_ok=True)
+LOG_FILE = TARS_DIR / "tars.log"
+CONFIG_FILE = TARS_DIR / "config.yaml"
+HISTORY_FILE = TARS_DIR / "history.json"
+
+# Default configuration
+DEFAULT_CONFIG = {
+    "default": {
+        "namespace": None,
+        "cluster": None,
+        "thresholds": {
+            "cpu": 80,
+            "memory": 85,
+            "restarts": 5
+        },
+        "prometheus_url": None,
+        "interval": 30
+    },
+    "profiles": {}
+}
+
+# Load configuration
+def load_config():
+    """Load configuration from file"""
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return yaml.safe_load(f) or DEFAULT_CONFIG
+        except Exception as e:
+            logger.error(f"Failed to load config: {e}")
+            return DEFAULT_CONFIG
+    return DEFAULT_CONFIG
+
+def save_config(config_data):
+    """Save configuration to file"""
+    try:
+        with open(CONFIG_FILE, 'w') as f:
+            yaml.dump(config_data, f, default_flow_style=False)
+        logger.info("Configuration saved")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save config: {e}")
+        console.print(f"[red]✗ Failed to save config: {e}[/red]")
+        return False
+
+# Global config
+TARS_CONFIG = load_config()
+
+# Security: RBAC permission checker
+def check_rbac_permission(resource: str, verb: str, namespace: str = None) -> bool:
+    """Check if user has RBAC permission for operation"""
+    try:
+        from kubernetes.client import AuthorizationV1Api
+        from kubernetes.client.models import V1SelfSubjectAccessReview, V1SelfSubjectAccessReviewSpec, V1ResourceAttributes
+        
+        config.load_kube_config()
+        auth_api = AuthorizationV1Api()
+        
+        # Create access review
+        resource_attrs = V1ResourceAttributes(
+            verb=verb,
+            resource=resource,
+            namespace=namespace
+        )
+        
+        spec = V1SelfSubjectAccessReviewSpec(resource_attributes=resource_attrs)
+        review = V1SelfSubjectAccessReview(spec=spec)
+        
+        # Check permission
+        result = auth_api.create_self_subject_access_review(review)
+        
+        if not result.status.allowed:
+            logger.warning(f"RBAC denied: {verb} {resource} in {namespace}")
+            console.print(f"[yellow]⚠ Warning: No permission to {verb} {resource}[/yellow]")
+            return False
+        
+        logger.debug(f"RBAC allowed: {verb} {resource} in {namespace}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"RBAC check failed: {e}")
+        # Fail open - allow operation but log warning
+        return True
+
+def confirm_destructive_action(action: str, resource: str, skip_confirm: bool = False) -> bool:
+    """Require confirmation for destructive operations"""
+    if skip_confirm:
+        return True
+    
+    console.print(f"\n[bold yellow]⚠ DESTRUCTIVE ACTION[/bold yellow]")
+    console.print(f"Action: [red]{action}[/red]")
+    console.print(f"Resource: [cyan]{resource}[/cyan]")
+    
+    response = typer.confirm("Are you sure you want to proceed?", default=False)
+    
+    if response:
+        logger.warning(f"Destructive action confirmed: {action} on {resource}")
+        return True
+    else:
+        logger.info(f"Destructive action cancelled: {action} on {resource}")
+        console.print("[green]✓[/green] Action cancelled")
+        return False
+
+def redact_secrets(text: str) -> str:
+    """Redact potential secrets from text"""
+    import re
+    
+    # Patterns for common secrets
+    patterns = [
+        (r'password["\s:=]+([^\s"]+)', 'password=***REDACTED***'),
+        (r'token["\s:=]+([^\s"]+)', 'token=***REDACTED***'),
+        (r'api[_-]?key["\s:=]+([^\s"]+)', 'api_key=***REDACTED***'),
+        (r'secret["\s:=]+([^\s"]+)', 'secret=***REDACTED***'),
+        (r'bearer\s+([^\s]+)', 'bearer ***REDACTED***'),
+    ]
+    
+    redacted = text
+    for pattern, replacement in patterns:
+        redacted = re.sub(pattern, replacement, redacted, flags=re.IGNORECASE)
+    
+    return redacted
+
+# Performance: Cache configuration
+_cache = {}
+_cache_ttl = {}
+
+def cached_api_call(key: str, ttl: int = 60):
+    """Decorator for caching API calls with TTL"""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            cache_key = f"{key}:{args}:{kwargs}"
+            now = time.time()
+            
+            # Check cache
+            if cache_key in _cache:
+                if now - _cache_ttl.get(cache_key, 0) < ttl:
+                    logger.debug(f"Cache hit: {cache_key}")
+                    return _cache[cache_key]
+            
+            # Call function
+            result = func(*args, **kwargs)
+            
+            # Store in cache
+            _cache[cache_key] = result
+            _cache_ttl[cache_key] = now
+            logger.debug(f"Cache miss: {cache_key}")
+            
+            return result
+        return wrapper
+    return decorator
+
+# Command history functions
+def save_to_history(command: str, success: bool = True):
+    """Save command to history"""
+    try:
+        history = []
+        if HISTORY_FILE.exists():
+            with open(HISTORY_FILE, 'r') as f:
+                history = json.load(f)
+        
+        history.append({
+            "id": len(history) + 1,
+            "command": command,
+            "timestamp": datetime.now().isoformat(),
+            "success": success
+        })
+        
+        # Keep last 1000 commands
+        history = history[-1000:]
+        
+        with open(HISTORY_FILE, 'w') as f:
+            json.dump(history, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save history: {e}")
+
+# Create logger
+logger = logging.getLogger("tars")
+logger.setLevel(logging.DEBUG)
+
+# File handler with rotation (10MB max, keep 5 files)
+file_handler = RotatingFileHandler(LOG_FILE, maxBytes=10*1024*1024, backupCount=5)
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+)
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+
+# Console handler for errors only
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.ERROR)
+console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+console_handler.setFormatter(console_formatter)
+logger.addHandler(console_handler)
+
+# Global debug mode flag
+DEBUG_MODE = False
+VERBOSE_MODE = False
+
 app = typer.Typer(
     help="T.A.R.S. - Technical Assistance & Reliability System for Kubernetes",
     add_completion=True,
@@ -105,16 +320,66 @@ def show_welcome():
     console.print(Panel(info_panel, border_style="cyan", padding=(0, 2)))
     console.print("\n[dim]Created by Omer Rathore | Type 'tars --help' for all commands[/dim]\n")
 
+# Retry decorator with exponential backoff
+def retry_with_backoff(max_retries=3, initial_delay=1, backoff_factor=2, exceptions=(Exception,)):
+    """Decorator to retry functions with exponential backoff"""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = initial_delay
+            last_exception = None
+            
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except exceptions as e:
+                    last_exception = e
+                    if attempt < max_retries - 1:
+                        # Add jitter to prevent thundering herd
+                        jitter = random.uniform(0, 0.1 * delay)
+                        sleep_time = delay + jitter
+                        console.print(f"[dim]Retry {attempt + 1}/{max_retries} after {sleep_time:.1f}s...[/dim]")
+                        logger.info(f"Retrying {func.__name__} (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(sleep_time)
+                        delay *= backoff_factor
+                    else:
+                        logger.error(f"Max retries reached for {func.__name__}: {last_exception}")
+                        raise last_exception
+            return None
+        return wrapper
+    return decorator
+
 @app.callback(invoke_without_command=True)
-def main(ctx: typer.Context):
+def main(
+    ctx: typer.Context,
+    debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output")
+):
     """TARS - Your sarcastic Kubernetes monitoring companion"""
+    global DEBUG_MODE, VERBOSE_MODE
+    DEBUG_MODE = debug
+    VERBOSE_MODE = verbose
+    
+    if debug:
+        logger.setLevel(logging.DEBUG)
+        console.print("[dim]Debug mode enabled[/dim]")
+        logger.debug("TARS started in debug mode")
+    elif verbose:
+        logger.setLevel(logging.INFO)
+        console.print("[dim]Verbose mode enabled[/dim]")
+        logger.info("TARS started in verbose mode")
+    
     if ctx.invoked_subcommand is None:
         show_welcome()
+    else:
+        logger.info(f"Command invoked: {ctx.invoked_subcommand}")
 
 def get_gemini_response(prompt: str) -> str:
     """Get response from Gemini API with TARS personality"""
+    logger.debug(f"Calling Gemini API with prompt length: {len(prompt)}")
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
+        logger.error("GEMINI_API_KEY not set")
         return "Error: GEMINI_API_KEY not set. Developer, I need that API key to function properly."
     
     client = genai.Client(api_key=api_key)
@@ -127,6 +392,63 @@ Keep responses concise and actionable.
     
     response = client.models.generate_content(model='gemini-2.0-flash', contents=tars_prompt)
     return response.text
+
+# Helper functions with retry logic
+@retry_with_backoff(max_retries=3, exceptions=(k8s_client.exceptions.ApiException,))
+def safe_k8s_api_call(api_func, *args, **kwargs):
+    """Wrapper for Kubernetes API calls with retry logic"""
+    try:
+        return api_func(*args, **kwargs)
+    except k8s_client.exceptions.ApiException as e:
+        if e.status == 429:  # Rate limit
+            console.print("[yellow]⚠ API rate limit hit, retrying...[/yellow]")
+            raise
+        elif e.status >= 500:  # Server errors are retryable
+            console.print(f"[yellow]⚠ Server error ({e.status}), retrying...[/yellow]")
+            raise
+        else:  # Client errors (4xx) are not retryable
+            console.print(f"[red]✗ API Error: {e.reason}[/red]")
+            return None
+
+# Input validation functions
+def validate_k8s_name(name: str, resource_type: str = "resource") -> bool:
+    """Validate Kubernetes resource name (RFC 1123 DNS subdomain)"""
+    if not name:
+        console.print(f"[red]✗ Error: {resource_type} name cannot be empty[/red]")
+        return False
+    
+    # Kubernetes naming rules: lowercase alphanumeric, hyphens, max 253 chars
+    pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'
+    if not re.match(pattern, name) or len(name) > 253:
+        console.print(f"[red]✗ Error: Invalid {resource_type} name '{name}'[/red]")
+        console.print(f"[dim]Must be lowercase alphanumeric with hyphens, max 253 chars[/dim]")
+        return False
+    return True
+
+def validate_namespace(namespace: str) -> bool:
+    """Validate namespace name"""
+    return validate_k8s_name(namespace, "namespace")
+
+def validate_threshold(value: float, min_val: float = 0, max_val: float = None, name: str = "threshold") -> bool:
+    """Validate numeric threshold values"""
+    if value < min_val:
+        console.print(f"[red]✗ Error: {name} must be >= {min_val}[/red]")
+        return False
+    if max_val and value > max_val:
+        console.print(f"[red]✗ Error: {name} must be <= {max_val}[/red]")
+        return False
+    return True
+
+def sanitize_command(command: str) -> str:
+    """Sanitize shell commands to prevent injection"""
+    # Remove dangerous characters and patterns
+    dangerous_patterns = [';', '&&', '||', '|', '`', '$', '>', '<', '\n', '\r']
+    sanitized = command
+    for pattern in dangerous_patterns:
+        if pattern in sanitized:
+            console.print(f"[yellow]⚠ Warning: Removed potentially dangerous pattern: {pattern}[/yellow]")
+            sanitized = sanitized.replace(pattern, '')
+    return sanitized.strip()
 
 @app.command()
 def setup():
@@ -285,12 +607,12 @@ def pods(namespace: str = typer.Option("default", help="Namespace to check")):
 
 @app.command()
 def watch(
-    namespace: str = typer.Option("default", help="Namespace to watch"),
-    all_namespaces: bool = typer.Option(False, "--all-namespaces", help="Watch all namespaces"),
+    namespace: str = typer.Option(None, help="Namespace to watch (default: all namespaces)"),
+    all_namespaces: bool = typer.Option(False, "--all-namespaces", help="Watch all namespaces (deprecated, now default)"),
     namespaces: str = typer.Option(None, "--namespaces", help="Comma-separated list of namespaces"),
     interval: int = typer.Option(5, help="Refresh interval in seconds")
 ):
-    """Real-time pod monitoring dashboard"""
+    """🌐 Real-time pod monitoring dashboard across all namespaces"""
     try:
         config.load_kube_config()
         v1 = k8s_client.CoreV1Api()
@@ -299,19 +621,19 @@ def watch(
         
         while True:
             # Determine which pods to fetch
-            if all_namespaces:
-                pods = v1.list_pod_for_all_namespaces()
-                show_namespace = True
-            elif namespaces:
+            if namespaces:
                 ns_list = [ns.strip() for ns in namespaces.split(',')]
                 all_pods = []
                 for ns in ns_list:
                     all_pods.extend(v1.list_namespaced_pod(ns).items)
                 pods = type('obj', (object,), {'items': all_pods})()
                 show_namespace = True
-            else:
+            elif namespace:
                 pods = v1.list_namespaced_pod(namespace)
                 show_namespace = False
+            else:
+                pods = v1.list_pod_for_all_namespaces()
+                show_namespace = True
             
             table = Table(title=f"Live Pod Monitor - {datetime.now().strftime('%H:%M:%S')}")
             
@@ -515,8 +837,9 @@ def health():
                     endpoints = v1.read_namespaced_endpoints(svc.metadata.name, svc.metadata.namespace)
                     if not endpoints.subsets or not any(s.addresses for s in endpoints.subsets):
                         services_without_endpoints.append(f"{svc.metadata.namespace}/{svc.metadata.name}")
-                except:
-                    pass
+                except k8s_client.exceptions.ApiException as e:
+                    if e.status != 404:  # Ignore not found, service may not have endpoints yet
+                        console.print(f"[dim]Warning: Could not read endpoints for {svc.metadata.namespace}/{svc.metadata.name}: {e.reason}[/dim]")
         
         total_pods = len(all_pods.items)
         
@@ -698,61 +1021,98 @@ def metrics(namespace: str = typer.Option("default", help="Namespace to check"))
 
 @app.command()
 def spike(
-    namespace: str = typer.Option("default", help="Namespace to monitor"),
+    namespace: str = typer.Option(None, help="Namespace to monitor (default: all namespaces)"),
     cpu_threshold: float = typer.Option(1.0, help="CPU threshold in cores"),
     memory_threshold: int = typer.Option(1000, help="Memory threshold in Mi"),
     interval: int = typer.Option(10, help="Check interval in seconds")
 ):
-    """Monitor for CPU/Memory spikes in real-time"""
+    """🌐 Monitor for CPU/Memory spikes in real-time across all namespaces"""
     try:
         config.load_kube_config()
         custom_api = k8s_client.CustomObjectsApi()
+        v1 = k8s_client.CoreV1Api()
         
-        console.print(f"[bold green]TARS:[/bold green] Monitoring for spikes (CPU > {cpu_threshold} cores, Memory > {memory_threshold}Mi)...")
+        scope = f"namespace: {namespace}" if namespace else "all namespaces"
+        console.print(f"[bold green]TARS:[/bold green] Monitoring for spikes (CPU > {cpu_threshold} cores, Memory > {memory_threshold}Mi) in {scope}...")
         console.print("[dim]Press Ctrl+C to stop[/dim]\n")
         
         spike_history = {}
         
         while True:
             try:
-                metrics = custom_api.list_namespaced_custom_object(
-                    group="metrics.k8s.io",
-                    version="v1beta1",
-                    namespace=namespace,
-                    plural="pods"
-                )
+                # Get all namespaces or specific namespace
+                if namespace:
+                    namespaces_to_check = [namespace]
+                else:
+                    ns_list = v1.list_namespace()
+                    namespaces_to_check = [ns.metadata.name for ns in ns_list.items]
                 
                 current_time = datetime.now().strftime('%H:%M:%S')
                 spikes_detected = []
                 
-                for item in metrics['items']:
-                    pod_name = item['metadata']['name']
+                for ns in namespaces_to_check:
+                    try:
+                        metrics = custom_api.list_namespaced_custom_object(
+                            group="metrics.k8s.io",
+                            version="v1beta1",
+                            namespace=ns,
+                            plural="pods"
+                        )
+                    except k8s_client.exceptions.ApiException as e:
+                        if e.status == 403:
+                            console.print(f"[dim]Warning: No permission to access metrics in namespace {ns}[/dim]")
+                        elif e.status == 404:
+                            console.print(f"[yellow]Warning: Metrics API not available. Install metrics-server.[/yellow]")
+                            break
+                        continue
+                
+                current_time = datetime.now().strftime('%H:%M:%S')
+                spikes_detected = []
+                
+                for ns in namespaces_to_check:
+                    try:
+                        metrics = custom_api.list_namespaced_custom_object(
+                            group="metrics.k8s.io",
+                            version="v1beta1",
+                            namespace=ns,
+                            plural="pods"
+                        )
+                    except k8s_client.exceptions.ApiException as e:
+                        continue
+                    except Exception as e:
+                        console.print(f"[dim]Warning: Error fetching metrics for {ns}: {str(e)}[/dim]")
+                        continue
                     
-                    total_cpu = 0
-                    total_memory = 0
-                    
-                    for container in item['containers']:
-                        cpu_str = container['usage']['cpu']
-                        memory_str = container['usage']['memory']
+                    for item in metrics['items']:
+                        pod_name = item['metadata']['name']
+                        pod_namespace = item['metadata']['namespace']
+                        pod_full_name = f"{pod_namespace}/{pod_name}"
                         
-                        if cpu_str.endswith('n'):
-                            total_cpu += int(cpu_str[:-1]) / 1_000_000_000
-                        elif cpu_str.endswith('m'):
-                            total_cpu += int(cpu_str[:-1]) / 1000
+                        total_cpu = 0
+                        total_memory = 0
                         
-                        if memory_str.endswith('Ki'):
-                            total_memory += int(memory_str[:-2]) / 1024
-                        elif memory_str.endswith('Mi'):
-                            total_memory += int(memory_str[:-2])
-                    
-                    # Check for spikes
-                    if total_cpu > cpu_threshold:
-                        spikes_detected.append(f"[bold red]🔥 CPU SPIKE:[/bold red] [red]{pod_name}: {total_cpu:.3f} cores[/red]")
-                        spike_history[pod_name] = spike_history.get(pod_name, 0) + 1
-                    
-                    if total_memory > memory_threshold:
-                        spikes_detected.append(f"[bold red]🔥 MEMORY SPIKE:[/bold red] [red]{pod_name}: {total_memory:.1f}Mi[/red]")
-                        spike_history[pod_name] = spike_history.get(pod_name, 0) + 1
+                        for container in item['containers']:
+                            cpu_str = container['usage']['cpu']
+                            memory_str = container['usage']['memory']
+                            
+                            if cpu_str.endswith('n'):
+                                total_cpu += int(cpu_str[:-1]) / 1_000_000_000
+                            elif cpu_str.endswith('m'):
+                                total_cpu += int(cpu_str[:-1]) / 1000
+                            
+                            if memory_str.endswith('Ki'):
+                                total_memory += int(memory_str[:-2]) / 1024
+                            elif memory_str.endswith('Mi'):
+                                total_memory += int(memory_str[:-2])
+                        
+                        # Check for spikes
+                        if total_cpu > cpu_threshold:
+                            spikes_detected.append(f"[bold red]🔥 CPU SPIKE:[/bold red] [red]{pod_full_name}: {total_cpu:.3f} cores[/red]")
+                            spike_history[pod_full_name] = spike_history.get(pod_full_name, 0) + 1
+                        
+                        if total_memory > memory_threshold:
+                            spikes_detected.append(f"[bold red]🔥 MEMORY SPIKE:[/bold red] [red]{pod_full_name}: {total_memory:.1f}Mi[/red]")
+                            spike_history[pod_full_name] = spike_history.get(pod_full_name, 0) + 1
                 
                 if spikes_detected:
                     console.print(f"\n[{current_time}]")
@@ -875,7 +1235,12 @@ def services(namespace: str = typer.Option("default", help="Namespace to check")
                 endpoints = v1.read_namespaced_endpoints(svc.metadata.name, namespace)
                 endpoint_count = sum([len(subset.addresses) if subset.addresses else 0 for subset in endpoints.subsets]) if endpoints.subsets else 0
                 endpoint_status = f"[green]{endpoint_count}[/green]" if endpoint_count > 0 else "[red]0[/red]"
-            except:
+            except k8s_client.exceptions.ApiException as e:
+                if e.status == 404:
+                    endpoint_status = "[yellow]No Endpoints[/yellow]"
+                else:
+                    endpoint_status = "[yellow]N/A[/yellow]"
+            except Exception:
                 endpoint_status = "[yellow]N/A[/yellow]"
             
             table.add_row(
@@ -1530,26 +1895,41 @@ def creator():
     console.print("\n[bold green]TARS:[/bold green] [italic]Yes, I was built by a human. Surprising, I know.[/italic]\n")
 
 @app.command()
-def restart(pod_name: str, namespace: str = typer.Option("default", help="Namespace")):
+def restart(
+    pod_name: str,
+    namespace: str = typer.Option("default", help="Namespace"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation")
+):
     """Restart a pod (delete and let controller recreate)"""
     try:
         config.load_kube_config()
         v1 = k8s_client.CoreV1Api()
         
-        confirm = typer.confirm(f"Are you sure you want to restart {pod_name}?")
-        if not confirm:
-            console.print("[yellow]Restart cancelled[/yellow]")
-            return
+        # RBAC check
+        if not check_rbac_permission("pods", "delete", namespace):
+            console.print("[red]✗ Insufficient permissions to delete pods[/red]")
+            raise typer.Exit(1)
+        
+        # Confirmation
+        if not confirm_destructive_action("restart pod", f"{namespace}/{pod_name}", yes):
+            raise typer.Exit(0)
         
         console.print(f"[bold green]TARS:[/bold green] restarting {pod_name}...")
         v1.delete_namespaced_pod(pod_name, namespace)
         console.print(f"[bold green]✓[/bold green] Pod {pod_name} deleted. Controller will recreate it.")
+        logger.info(f"Pod restarted: {namespace}/{pod_name}")
         
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error:", str(e), markup=False)
+        logger.error(f"Restart failed: {e}")
 
 @app.command()
-def scale(deployment: str, replicas: int, namespace: str = typer.Option("default", help="Namespace")):
+def scale(
+    deployment: str,
+    replicas: int,
+    namespace: str = typer.Option("default", help="Namespace"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation")
+):
     """Scale a deployment up or down"""
     try:
         config.load_kube_config()
@@ -1875,15 +2255,21 @@ def quota(namespace: str = typer.Option("default", help="Namespace")):
         console.print(f"[bold red]✗[/bold red] Error:", str(e), markup=False)
 
 @app.command()
-def triage(namespace: str = typer.Option("default", help="Namespace")):
-    """Quick incident triage - show all critical issues"""
+def triage(namespace: str = typer.Option(None, help="Namespace (default: all namespaces)")):
+    """🌐 Quick incident triage - show all critical issues across all namespaces"""
     try:
         config.load_kube_config()
         v1 = k8s_client.CoreV1Api()
         
-        console.print("[bold green]TARS:[/bold green] Performing incident triage...\n")
+        scope = f"namespace: {namespace}" if namespace else "all namespaces"
+        console.print(f"[bold green]TARS:[/bold green] Performing incident triage for {scope}...\n")
         
-        pods = v1.list_namespaced_pod(namespace)
+        # Get namespaces to check
+        if namespace:
+            namespaces_to_check = [namespace]
+        else:
+            ns_list = v1.list_namespace()
+            namespaces_to_check = [ns.metadata.name for ns in ns_list.items]
         
         issues = {
             "crashloop": 0,
@@ -1895,31 +2281,43 @@ def triage(namespace: str = typer.Option("default", help="Namespace")):
         
         critical_pods = []
         
-        for pod in pods.items:
-            status = pod.status.phase
-            restarts = sum([c.restart_count for c in pod.status.container_statuses]) if pod.status.container_statuses else 0
-            
-            if status == "Failed":
-                issues["failed"] += 1
-                critical_pods.append(f"[bold red]FAILED:[/bold red] [red]{pod.metadata.name}[/red]")
-            
-            if status == "Pending":
-                issues["pending"] += 1
-                critical_pods.append(f"[bold red]PENDING:[/bold red] [red]{pod.metadata.name}[/red]")
-            
-            if restarts > 10:
-                issues["high_restarts"] += 1
-                critical_pods.append(f"[bold red]HIGH RESTARTS ({restarts}):[/bold red] [red]{pod.metadata.name}[/red]")
-            
-            if pod.status.container_statuses:
-                for container in pod.status.container_statuses:
-                    if container.state.waiting and container.state.waiting.reason == "CrashLoopBackOff":
-                        issues["crashloop"] += 1
-                        critical_pods.append(f"[red]CRASHLOOP[/red]: {pod.metadata.name}")
+        for ns in namespaces_to_check:
+            try:
+                pods = v1.list_namespaced_pod(ns)
+                
+                for pod in pods.items:
+                    status = pod.status.phase
+                    restarts = sum([c.restart_count for c in pod.status.container_statuses]) if pod.status.container_statuses else 0
+                    pod_full_name = f"{ns}/{pod.metadata.name}"
                     
-                    if container.last_state.terminated and container.last_state.terminated.reason == "OOMKilled":
-                        issues["oom"] += 1
-                        critical_pods.append(f"[red]OOM[/red]: {pod.metadata.name}")
+                    if status == "Failed":
+                        issues["failed"] += 1
+                        critical_pods.append(f"[bold red]FAILED:[/bold red] [red]{pod_full_name}[/red]")
+                    
+                    if status == "Pending":
+                        issues["pending"] += 1
+                        critical_pods.append(f"[bold red]PENDING:[/bold red] [red]{pod_full_name}[/red]")
+                    
+                    if restarts > 10:
+                        issues["high_restarts"] += 1
+                        critical_pods.append(f"[bold red]HIGH RESTARTS ({restarts}):[/bold red] [red]{pod_full_name}[/red]")
+                    
+                    if pod.status.container_statuses:
+                        for container in pod.status.container_statuses:
+                            if container.state.waiting and container.state.waiting.reason == "CrashLoopBackOff":
+                                issues["crashloop"] += 1
+                                critical_pods.append(f"[red]CRASHLOOP[/red]: {pod_full_name}")
+                            
+                            if container.last_state.terminated and container.last_state.terminated.reason == "OOMKilled":
+                                issues["oom"] += 1
+                                critical_pods.append(f"[red]OOM[/red]: {pod_full_name}")
+            except k8s_client.exceptions.ApiException as e:
+                if e.status == 403:
+                    console.print(f"[dim]Warning: No permission to access namespace {ns}[/dim]")
+                continue
+            except Exception as e:
+                console.print(f"[dim]Warning: Error checking namespace {ns}: {str(e)}[/dim]")
+                continue
         
         # Summary
         table = Table(title="Incident Summary")
@@ -2987,8 +3385,8 @@ def version():
     console.print("[dim]Built with 💚 for the DevOps community[/dim]\n")
 
 @app.command()
-def oncall(namespace: str = typer.Option("default", help="Namespace to monitor")):
-    """On-call engineer dashboard - everything you need in one view"""
+def oncall(namespace: str = typer.Option(None, help="Namespace to monitor (default: all namespaces)")):
+    """🌐 On-call engineer dashboard - everything you need in one view"""
     try:
         config.load_kube_config()
         v1 = k8s_client.CoreV1Api()
@@ -2999,14 +3397,37 @@ def oncall(namespace: str = typer.Option("default", help="Namespace to monitor")
         console.print("[bold yellow]        TARS ON-CALL DASHBOARD - GOD MODE ACTIVATED        [/bold yellow]")
         console.print("[bold cyan]═══════════════════════════════════════════════════════════[/bold cyan]\n")
         
-        # Critical Issues
-        pods = v1.list_namespaced_pod(namespace)
-        crashloop = sum(1 for p in pods.items if p.status.container_statuses and any(
-            c.state.waiting and c.state.waiting.reason == "CrashLoopBackOff" for c in p.status.container_statuses))
-        oom = sum(1 for p in pods.items if p.status.container_statuses and any(
-            c.last_state.terminated and c.last_state.terminated.reason == "OOMKilled" for c in p.status.container_statuses))
-        pending = sum(1 for p in pods.items if p.status.phase == "Pending")
-        failed = sum(1 for p in pods.items if p.status.phase == "Failed")
+        # Get namespaces to monitor
+        if namespace:
+            namespaces_to_check = [namespace]
+            console.print(f"[dim]Monitoring namespace: {namespace}[/dim]\n")
+        else:
+            ns_list = v1.list_namespace()
+            namespaces_to_check = [ns.metadata.name for ns in ns_list.items]
+            console.print(f"[dim]Monitoring all namespaces ({len(namespaces_to_check)} total)[/dim]\n")
+        
+        # Critical Issues across all namespaces
+        crashloop = 0
+        oom = 0
+        pending = 0
+        failed = 0
+        
+        for ns in namespaces_to_check:
+            try:
+                pods = v1.list_namespaced_pod(ns)
+                crashloop += sum(1 for p in pods.items if p.status.container_statuses and any(
+                    c.state.waiting and c.state.waiting.reason == "CrashLoopBackOff" for c in p.status.container_statuses))
+                oom += sum(1 for p in pods.items if p.status.container_statuses and any(
+                    c.last_state.terminated and c.last_state.terminated.reason == "OOMKilled" for c in p.status.container_statuses))
+                pending += sum(1 for p in pods.items if p.status.phase == "Pending")
+                failed += sum(1 for p in pods.items if p.status.phase == "Failed")
+            except k8s_client.exceptions.ApiException as e:
+                if e.status == 403:
+                    console.print(f"[dim]Warning: No permission to access namespace {ns}[/dim]")
+                continue
+            except Exception as e:
+                console.print(f"[dim]Warning: Error checking namespace {ns}: {str(e)}[/dim]")
+                continue
         
         # Status Summary
         table = Table(title="🚨 Critical Issues", show_header=True)
@@ -3029,34 +3450,67 @@ def oncall(namespace: str = typer.Option("default", help="Namespace to monitor")
         console.print(table)
         console.print()
         
-        # Deployment Status
-        deployments = apps_v1.list_namespaced_deployment(namespace)
+        # Deployment Status across all namespaces
         dep_table = Table(title="📦 Deployments", show_header=True)
+        dep_table.add_column("Namespace", style="magenta")
         dep_table.add_column("Name", style="cyan")
         dep_table.add_column("Ready", style="green")
         dep_table.add_column("Status", style="yellow")
         
-        for dep in deployments.items[:5]:
-            ready = f"{dep.status.ready_replicas or 0}/{dep.spec.replicas}"
-            status = "✓" if dep.status.ready_replicas == dep.spec.replicas else "⚠"
-            dep_table.add_row(dep.metadata.name, ready, status)
+        deployment_count = 0
+        for ns in namespaces_to_check:
+            try:
+                deployments = apps_v1.list_namespaced_deployment(ns)
+                for dep in deployments.items:
+                    if deployment_count >= 10:  # Limit to 10 deployments
+                        break
+                    ready = f"{dep.status.ready_replicas or 0}/{dep.spec.replicas}"
+                    status = "✓" if dep.status.ready_replicas == dep.spec.replicas else "⚠"
+                    dep_table.add_row(ns, dep.metadata.name, ready, status)
+                    deployment_count += 1
+                if deployment_count >= 10:
+                    break
+            except k8s_client.exceptions.ApiException as e:
+                if e.status == 403:
+                    console.print(f"[dim]Warning: No permission to list deployments in {ns}[/dim]")
+                continue
+            except Exception as e:
+                console.print(f"[dim]Warning: Error listing deployments in {ns}: {str(e)}[/dim]")
+                continue
         
         console.print(dep_table)
         console.print()
         
-        # Recent Events
-        events = v1.list_namespaced_event(namespace)
-        warning_events = [e for e in events.items if e.type == "Warning"][-5:]
+        # Recent Events across all namespaces
+        all_warning_events = []
+        for ns in namespaces_to_check:
+            try:
+                events = v1.list_namespaced_event(ns)
+                warning_events = [(e, ns) for e in events.items if e.type == "Warning"]
+                all_warning_events.extend(warning_events)
+            except k8s_client.exceptions.ApiException as e:
+                if e.status == 403:
+                    console.print(f"[dim]Warning: No permission to list events in {ns}[/dim]")
+                continue
+            except Exception as e:
+                console.print(f"[dim]Warning: Error listing events in {ns}: {str(e)}[/dim]")
+                continue
         
-        if warning_events:
+        # Sort by timestamp and take last 5
+        all_warning_events.sort(key=lambda x: x[0].last_timestamp or datetime.min, reverse=True)
+        recent_warnings = all_warning_events[:5]
+        
+        if recent_warnings:
             event_table = Table(title="⚠️  Recent Warnings", show_header=True)
             event_table.add_column("Time", style="yellow")
+            event_table.add_column("Namespace", style="magenta")
             event_table.add_column("Object", style="cyan")
             event_table.add_column("Reason", style="red")
             
-            for event in warning_events:
+            for event, ns in recent_warnings:
                 event_table.add_row(
                     event.last_timestamp.strftime("%H:%M:%S") if event.last_timestamp else "N/A",
+                    ns,
                     f"{event.involved_object.kind}/{event.involved_object.name}"[:40],
                     event.reason
                 )
@@ -3126,7 +3580,8 @@ def autofix(namespace: str = typer.Option("default", help="Namespace"), dry_run:
                                 if not dry_run:
                                     v1.delete_namespaced_pod(pod.metadata.name, namespace)
                                     console.print(f"[green]✓[/green] Pod deleted and will be recreated")
-                        except:
+                        except k8s_client.exceptions.ApiException as e:
+                            console.print(f"[dim]Warning: Could not read logs for {pod.metadata.name}: {e.reason}[/dim]")
                             # If can't read logs, just restart if high restart count
                             if container.restart_count > 5:
                                 action = f"Restart pod: {pod.metadata.name} (restarts: {container.restart_count})"
@@ -3316,14 +3771,15 @@ def god():
 
 @app.command()
 def alert(
-    namespace: str = typer.Option("default", help="Namespace to monitor"),
+    namespace: str = typer.Option(None, help="Namespace to monitor (default: all namespaces)"),
     threshold_cpu: float = typer.Option(80.0, help="CPU threshold percentage"),
     threshold_memory: float = typer.Option(80.0, help="Memory threshold percentage"),
     interval: int = typer.Option(30, help="Check interval in seconds")
 ):
-    """Real-time alerting for SREs - monitors and alerts on threshold breaches"""
+    """🌐 Real-time alerting for SREs - monitors and alerts on threshold breaches"""
+    scope = f"namespace: {namespace}" if namespace else "all namespaces"
     console.print(f"[bold cyan]🚨 TARS Alert Monitor Started[/bold cyan]")
-    console.print(f"Namespace: {namespace} | CPU: {threshold_cpu}% | Memory: {threshold_memory}% | Interval: {interval}s\n")
+    console.print(f"Scope: {scope} | CPU: {threshold_cpu}% | Memory: {threshold_memory}% | Interval: {interval}s\n")
     
     try:
         config.load_kube_config()
@@ -3333,18 +3789,35 @@ def alert(
         
         while True:
             try:
-                pods = v1.list_namespaced_pod(namespace)
+                # Get namespaces to monitor
+                if namespace:
+                    namespaces_to_check = [namespace]
+                else:
+                    ns_list = v1.list_namespace()
+                    namespaces_to_check = [ns.metadata.name for ns in ns_list.items]
+                
                 alerts = []
                 
-                for pod in pods.items:
-                    if pod.status.phase == "Running":
-                        # Check for restarts
-                        for container_status in pod.status.container_statuses or []:
-                            if container_status.restart_count > 5:
-                                alerts.append(f"🔄 {pod.metadata.name}: {container_status.restart_count} restarts")
-                    
-                    elif pod.status.phase in ["Failed", "Pending"]:
-                        alerts.append(f"⚠️  {pod.metadata.name}: {pod.status.phase}")
+                for ns in namespaces_to_check:
+                    try:
+                        pods = v1.list_namespaced_pod(ns)
+                        
+                        for pod in pods.items:
+                            if pod.status.phase == "Running":
+                                # Check for restarts
+                                for container_status in pod.status.container_statuses or []:
+                                    if container_status.restart_count > 5:
+                                        alerts.append(f"🔄 {ns}/{pod.metadata.name}: {container_status.restart_count} restarts")
+                            
+                            elif pod.status.phase in ["Failed", "Pending"]:
+                                alerts.append(f"⚠️  {ns}/{pod.metadata.name}: {pod.status.phase}")
+                    except k8s_client.exceptions.ApiException as e:
+                        if e.status == 403:
+                            console.print(f"[dim]Warning: No permission to access namespace {ns}[/dim]")
+                        continue
+                    except Exception as e:
+                        console.print(f"[dim]Warning: Error checking namespace {ns}: {str(e)}[/dim]")
+                        continue
                 
                 if alerts:
                     alert_count += len(alerts)
@@ -4139,7 +4612,8 @@ def cardinality(
                             'cardinality': count
                         })
                     progress.advance(task)
-                except:
+                except Exception as e:
+                    console.print(f"[dim]Warning: Could not query metric {metric}: {str(e)}[/dim]")
                     progress.advance(task)
                     continue
         
@@ -4252,6 +4726,528 @@ def cardinality_labels(
         
     except Exception as e:
         console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+# Configuration Management Commands
+config_app = typer.Typer(help="Manage TARS configuration")
+app.add_typer(config_app, name="config")
+
+@config_app.command("list")
+def config_list():
+    """List all configuration settings"""
+    console.print("\n[bold cyan]TARS Configuration[/bold cyan]\n")
+    
+    config_data = load_config()
+    
+    # Default settings
+    table = Table(title="Default Settings")
+    table.add_column("Setting", style="cyan")
+    table.add_column("Value", style="yellow")
+    
+    defaults = config_data.get("default", {})
+    table.add_row("Namespace", str(defaults.get("namespace", "None")))
+    table.add_row("Cluster", str(defaults.get("cluster", "None")))
+    table.add_row("CPU Threshold", f"{defaults.get('thresholds', {}).get('cpu', 80)}%")
+    table.add_row("Memory Threshold", f"{defaults.get('thresholds', {}).get('memory', 85)}%")
+    table.add_row("Restart Threshold", str(defaults.get('thresholds', {}).get('restarts', 5)))
+    table.add_row("Prometheus URL", str(defaults.get("prometheus_url", "None")))
+    table.add_row("Check Interval", f"{defaults.get('interval', 30)}s")
+    
+    console.print(table)
+    console.print(f"\n[dim]Config file: {CONFIG_FILE}[/dim]")
+
+@config_app.command("get")
+def config_get(key: str = typer.Argument(..., help="Configuration key (e.g., default.namespace)")):
+    """Get a configuration value"""
+    config_data = load_config()
+    
+    keys = key.split('.')
+    value = config_data
+    
+    try:
+        for k in keys:
+            value = value[k]
+        console.print(f"[cyan]{key}[/cyan] = [yellow]{value}[/yellow]")
+    except (KeyError, TypeError):
+        console.print(f"[red]✗ Key not found: {key}[/red]")
+        raise typer.Exit(1)
+
+@config_app.command("set")
+def config_set(
+    key: str = typer.Argument(..., help="Configuration key (e.g., default.namespace)"),
+    value: str = typer.Argument(..., help="Value to set")
+):
+    """Set a configuration value"""
+    config_data = load_config()
+    
+    keys = key.split('.')
+    current = config_data
+    
+    # Navigate to the parent
+    for k in keys[:-1]:
+        if k not in current:
+            current[k] = {}
+        current = current[k]
+    
+    # Convert value to appropriate type
+    if value.lower() == "none":
+        value = None
+    elif value.lower() in ["true", "false"]:
+        value = value.lower() == "true"
+    elif value.isdigit():
+        value = int(value)
+    
+    # Set the value
+    current[keys[-1]] = value
+    
+    if save_config(config_data):
+        console.print(f"[green]✓[/green] Set [cyan]{key}[/cyan] = [yellow]{value}[/yellow]")
+        global TARS_CONFIG
+        TARS_CONFIG = config_data
+    else:
+        raise typer.Exit(1)
+
+@config_app.command("reset")
+def config_reset(confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation")):
+    """Reset configuration to defaults"""
+    if not confirm:
+        response = typer.confirm("Are you sure you want to reset all configuration?")
+        if not response:
+            console.print("[yellow]Cancelled[/yellow]")
+            raise typer.Exit(0)
+    
+    if save_config(DEFAULT_CONFIG):
+        console.print("[green]✓[/green] Configuration reset to defaults")
+        global TARS_CONFIG
+        TARS_CONFIG = DEFAULT_CONFIG
+    else:
+        raise typer.Exit(1)
+
+@config_app.command("edit")
+def config_edit():
+    """Open configuration file in editor"""
+    editor = os.getenv("EDITOR", "nano")
+    try:
+        subprocess.run([editor, str(CONFIG_FILE)])
+        console.print("[green]✓[/green] Configuration file edited")
+        global TARS_CONFIG
+        TARS_CONFIG = load_config()
+    except Exception as e:
+        console.print(f"[red]✗ Failed to open editor: {e}[/red]")
+        raise typer.Exit(1)
+
+@app.command()
+def multi_cluster():
+    """🌐 Multi-cluster dashboard - monitor all clusters simultaneously"""
+    try:
+        from kubernetes.config import list_kube_config_contexts
+        
+        console.clear()
+        console.print("[bold cyan]═══════════════════════════════════════════════════════════[/bold cyan]")
+        console.print("[bold yellow]        TARS MULTI-CLUSTER DASHBOARD                       [/bold yellow]")
+        console.print("[bold cyan]═══════════════════════════════════════════════════════════[/bold cyan]\n")
+        
+        contexts, active_context = list_kube_config_contexts()
+        
+        if not contexts:
+            console.print("[red]✗ No Kubernetes contexts found[/red]")
+            return
+        
+        console.print(f"[dim]Found {len(contexts)} cluster(s)[/dim]\n")
+        
+        # Cluster summary table
+        table = Table(title="Cluster Overview")
+        table.add_column("Cluster", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Nodes", style="yellow")
+        table.add_column("Pods", style="magenta")
+        table.add_column("Issues", style="red")
+        
+        for ctx in contexts:
+            context_name = ctx['name']
+            is_active = "✓" if ctx == active_context else ""
+            
+            try:
+                # Load context
+                config.load_kube_config(context=context_name)
+                v1 = k8s_client.CoreV1Api()
+                
+                # Get cluster info
+                nodes = v1.list_node()
+                pods = v1.list_pod_for_all_namespaces()
+                
+                node_count = len(nodes.items)
+                pod_count = len(pods.items)
+                
+                # Count issues
+                issues = 0
+                for pod in pods.items:
+                    if pod.status.phase in ["Failed", "Pending"]:
+                        issues += 1
+                    if pod.status.container_statuses:
+                        for c in pod.status.container_statuses:
+                            if c.state.waiting and c.state.waiting.reason == "CrashLoopBackOff":
+                                issues += 1
+                
+                status = "[green]✓ Healthy[/green]" if issues == 0 else "[red]⚠ Issues[/red]"
+                issue_str = f"[red]{issues}[/red]" if issues > 0 else "[green]0[/green]"
+                
+                table.add_row(
+                    f"{is_active} {context_name}",
+                    status,
+                    str(node_count),
+                    str(pod_count),
+                    issue_str
+                )
+                
+            except Exception as e:
+                table.add_row(
+                    f"{is_active} {context_name}",
+                    "[red]✗ Unreachable[/red]",
+                    "N/A",
+                    "N/A",
+                    "N/A"
+                )
+        
+        console.print(table)
+        
+        console.print("\n[bold green]💡 Quick Actions:[/bold green]")
+        console.print("  [cyan]tars context list[/cyan]           - List all contexts")
+        console.print("  [cyan]tars context switch <name>[/cyan]  - Switch context")
+        console.print("  [cyan]tars oncall[/cyan]                 - Monitor active cluster")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+        logger.error(f"Multi-cluster error: {e}")
+
+# Alert webhook function
+def send_webhook(webhook_url: str, message: str, severity: str = "info"):
+    """Send alert to webhook (Slack/PagerDuty/generic)"""
+    try:
+        # Detect webhook type
+        if "slack.com" in webhook_url:
+            # Slack format
+            color = {"critical": "danger", "warning": "warning", "info": "good"}.get(severity, "good")
+            payload = {
+                "attachments": [{
+                    "color": color,
+                    "title": "TARS Alert",
+                    "text": message,
+                    "footer": "TARS CLI",
+                    "ts": int(time.time())
+                }]
+            }
+        else:
+            # Generic webhook format
+            payload = {
+                "alert": message,
+                "severity": severity,
+                "timestamp": datetime.now().isoformat(),
+                "source": "TARS CLI"
+            }
+        
+        response = requests.post(webhook_url, json=payload, timeout=10)
+        response.raise_for_status()
+        logger.info(f"Webhook sent successfully to {webhook_url}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send webhook: {e}")
+        console.print(f"[dim]Warning: Failed to send webhook: {e}[/dim]")
+        return False
+
+@app.command()
+def alert_webhook(
+    webhook_url: str = typer.Option(None, "--webhook", help="Webhook URL (Slack/PagerDuty)"),
+    namespace: str = typer.Option(None, help="Namespace to monitor (default: all namespaces)"),
+    interval: int = typer.Option(60, help="Check interval in seconds")
+):
+    """🔔 Send alerts to webhook when issues detected"""
+    
+    # Get webhook from config if not provided
+    if not webhook_url:
+        webhook_url = TARS_CONFIG.get("default", {}).get("webhook_url")
+        if not webhook_url:
+            console.print("[red]✗ No webhook URL provided. Use --webhook or set in config[/red]")
+            console.print("[dim]Example: tars config set default.webhook_url https://hooks.slack.com/...[/dim]")
+            raise typer.Exit(1)
+    
+    console.print(f"[bold cyan]🔔 TARS Webhook Alerting Started[/bold cyan]")
+    console.print(f"Webhook: {webhook_url[:50]}...")
+    console.print(f"Interval: {interval}s\n")
+    
+    try:
+        config.load_kube_config()
+        v1 = k8s_client.CoreV1Api()
+        
+        # Track alerted issues to avoid spam
+        alerted_issues = set()
+        
+        while True:
+            try:
+                # Get namespaces
+                if namespace:
+                    namespaces_to_check = [namespace]
+                else:
+                    ns_list = v1.list_namespace()
+                    namespaces_to_check = [ns.metadata.name for ns in ns_list.items]
+                
+                current_issues = set()
+                alerts_to_send = []
+                
+                for ns in namespaces_to_check:
+                    try:
+                        pods = v1.list_namespaced_pod(ns)
+                        
+                        for pod in pods.items:
+                            pod_id = f"{ns}/{pod.metadata.name}"
+                            
+                            # Check for crashloop
+                            if pod.status.container_statuses:
+                                for c in pod.status.container_statuses:
+                                    if c.state.waiting and c.state.waiting.reason == "CrashLoopBackOff":
+                                        issue_id = f"crashloop:{pod_id}"
+                                        current_issues.add(issue_id)
+                                        if issue_id not in alerted_issues:
+                                            alerts_to_send.append((
+                                                f"🔴 CRITICAL: CrashLoopBackOff detected in {pod_id}",
+                                                "critical"
+                                            ))
+                                    
+                                    if c.last_state.terminated and c.last_state.terminated.reason == "OOMKilled":
+                                        issue_id = f"oom:{pod_id}"
+                                        current_issues.add(issue_id)
+                                        if issue_id not in alerted_issues:
+                                            alerts_to_send.append((
+                                                f"🔴 CRITICAL: OOMKilled detected in {pod_id}",
+                                                "critical"
+                                            ))
+                            
+                            # Check for failed/pending
+                            if pod.status.phase == "Failed":
+                                issue_id = f"failed:{pod_id}"
+                                current_issues.add(issue_id)
+                                if issue_id not in alerted_issues:
+                                    alerts_to_send.append((
+                                        f"🔴 CRITICAL: Pod failed - {pod_id}",
+                                        "critical"
+                                    ))
+                            
+                            elif pod.status.phase == "Pending":
+                                issue_id = f"pending:{pod_id}"
+                                current_issues.add(issue_id)
+                                if issue_id not in alerted_issues:
+                                    alerts_to_send.append((
+                                        f"🟡 WARNING: Pod pending - {pod_id}",
+                                        "warning"
+                                    ))
+                    
+                    except k8s_client.exceptions.ApiException:
+                        continue
+                
+                # Send alerts
+                for message, severity in alerts_to_send:
+                    console.print(f"[yellow]📤 Sending alert: {message}[/yellow]")
+                    send_webhook(webhook_url, message, severity)
+                
+                # Update alerted issues
+                alerted_issues = current_issues
+                
+                if not alerts_to_send:
+                    console.print(f"[dim]{datetime.now().strftime('%H:%M:%S')} - No new issues[/dim]", end="\r")
+                
+                time.sleep(interval)
+                
+            except KeyboardInterrupt:
+                console.print("\n[bold yellow]Webhook alerting stopped[/bold yellow]")
+                break
+                
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+        logger.error(f"Webhook alerting error: {e}")
+
+@app.command()
+def history(
+    search: str = typer.Option(None, "--search", "-s", help="Search history"),
+    limit: int = typer.Option(20, "--limit", "-n", help="Number of entries to show")
+):
+    """📜 Show command history"""
+    try:
+        if not HISTORY_FILE.exists():
+            console.print("[yellow]No command history yet[/yellow]")
+            return
+        
+        with open(HISTORY_FILE, 'r') as f:
+            history_data = json.load(f)
+        
+        if search:
+            history_data = [h for h in history_data if search.lower() in h['command'].lower()]
+        
+        if not history_data:
+            console.print("[yellow]No matching commands found[/yellow]")
+            return
+        
+        # Show last N entries
+        history_data = history_data[-limit:]
+        
+        table = Table(title="Command History")
+        table.add_column("ID", style="cyan")
+        table.add_column("Command", style="yellow")
+        table.add_column("Time", style="green")
+        table.add_column("Status", style="white")
+        
+        for entry in history_data:
+            status = "[green]✓[/green]" if entry.get('success', True) else "[red]✗[/red]"
+            timestamp = datetime.fromisoformat(entry['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+            table.add_row(
+                str(entry['id']),
+                entry['command'][:60],
+                timestamp,
+                status
+            )
+        
+        console.print(table)
+        console.print(f"\n[dim]Showing {len(history_data)} of {len(history_data)} commands[/dim]")
+        console.print("[dim]Use: tars replay <id> to replay a command[/dim]")
+        
+    except Exception as e:
+        console.print(f"[red]✗ Error reading history: {e}[/red]")
+
+@app.command()
+def replay(command_id: int = typer.Argument(..., help="Command ID to replay")):
+    """🔄 Replay a command from history"""
+    try:
+        if not HISTORY_FILE.exists():
+            console.print("[red]✗ No command history found[/red]")
+            raise typer.Exit(1)
+        
+        with open(HISTORY_FILE, 'r') as f:
+            history_data = json.load(f)
+        
+        # Find command
+        command_entry = None
+        for entry in history_data:
+            if entry['id'] == command_id:
+                command_entry = entry
+                break
+        
+        if not command_entry:
+            console.print(f"[red]✗ Command ID {command_id} not found[/red]")
+            raise typer.Exit(1)
+        
+        command = command_entry['command']
+        console.print(f"[cyan]Replaying:[/cyan] {command}")
+        
+        # Execute command
+        result = subprocess.run(command, shell=True)
+        
+        if result.returncode == 0:
+            console.print("[green]✓ Command executed successfully[/green]")
+        else:
+            console.print(f"[red]✗ Command failed with exit code {result.returncode}[/red]")
+        
+    except Exception as e:
+        console.print(f"[red]✗ Error: {e}[/red]")
+
+@app.command()
+def export(
+    output: str = typer.Option("cluster-report.json", "--output", "-o", help="Output file"),
+    format: str = typer.Option("json", "--format", "-f", help="Format: json, yaml, csv")
+):
+    """📤 Export cluster data to file"""
+    try:
+        config.load_kube_config()
+        v1 = k8s_client.CoreV1Api()
+        apps_v1 = k8s_client.AppsV1Api()
+        
+        console.print(f"[bold cyan]📤 Exporting cluster data...[/bold cyan]\n")
+        
+        # Collect data
+        data = {
+            "timestamp": datetime.now().isoformat(),
+            "cluster": {},
+            "namespaces": [],
+            "nodes": [],
+            "pods": [],
+            "deployments": [],
+            "services": []
+        }
+        
+        # Get nodes
+        nodes = v1.list_node()
+        for node in nodes.items:
+            data["nodes"].append({
+                "name": node.metadata.name,
+                "status": "Ready" if any(c.type == "Ready" and c.status == "True" for c in node.status.conditions) else "NotReady",
+                "version": node.status.node_info.kubelet_version
+            })
+        
+        # Get namespaces
+        namespaces = v1.list_namespace()
+        for ns in namespaces.items:
+            data["namespaces"].append(ns.metadata.name)
+        
+        # Get pods
+        pods = v1.list_pod_for_all_namespaces()
+        for pod in pods.items:
+            data["pods"].append({
+                "name": pod.metadata.name,
+                "namespace": pod.metadata.namespace,
+                "status": pod.status.phase,
+                "restarts": sum([c.restart_count for c in pod.status.container_statuses]) if pod.status.container_statuses else 0
+            })
+        
+        # Get deployments
+        deployments = apps_v1.list_deployment_for_all_namespaces()
+        for dep in deployments.items:
+            data["deployments"].append({
+                "name": dep.metadata.name,
+                "namespace": dep.metadata.namespace,
+                "replicas": dep.spec.replicas,
+                "ready": dep.status.ready_replicas or 0
+            })
+        
+        # Get services
+        services = v1.list_service_for_all_namespaces()
+        for svc in services.items:
+            data["services"].append({
+                "name": svc.metadata.name,
+                "namespace": svc.metadata.namespace,
+                "type": svc.spec.type,
+                "cluster_ip": svc.spec.cluster_ip
+            })
+        
+        data["cluster"]["summary"] = {
+            "nodes": len(data["nodes"]),
+            "namespaces": len(data["namespaces"]),
+            "pods": len(data["pods"]),
+            "deployments": len(data["deployments"]),
+            "services": len(data["services"])
+        }
+        
+        # Export based on format
+        if format == "json":
+            with open(output, 'w') as f:
+                json.dump(data, f, indent=2)
+        elif format == "yaml":
+            with open(output, 'w') as f:
+                yaml.dump(data, f, default_flow_style=False)
+        elif format == "csv":
+            # Export pods to CSV
+            import csv
+            with open(output, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=["namespace", "name", "status", "restarts"])
+                writer.writeheader()
+                writer.writerows(data["pods"])
+        else:
+            console.print(f"[red]✗ Unsupported format: {format}[/red]")
+            raise typer.Exit(1)
+        
+        console.print(f"[green]✓[/green] Exported to [cyan]{output}[/cyan]")
+        console.print(f"[dim]Format: {format}[/dim]")
+        console.print(f"[dim]Nodes: {len(data['nodes'])}, Pods: {len(data['pods'])}, Deployments: {len(data['deployments'])}[/dim]")
+        
+    except Exception as e:
+        console.print(f"[red]✗ Export failed: {e}[/red]")
+        logger.error(f"Export error: {e}")
 
 if __name__ == "__main__":
     app()

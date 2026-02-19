@@ -3,3 +3,8 @@ rich
 kubernetes
 google-genai
 prometheus-api-client
+pyyaml
+requests
+pytest
+pytest-cov
+pytest-mock
