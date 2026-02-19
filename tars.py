@@ -1050,6 +1050,101 @@ def namespaces():
         console.print(f"[bold red]✗[/bold red] Error:", str(e), markup=False)
 
 @app.command()
+def resources(namespace: str = typer.Argument("default", help="Namespace to check")):
+    """List all resources in a namespace"""
+    try:
+        config.load_kube_config()
+        v1 = k8s_client.CoreV1Api()
+        apps_v1 = k8s_client.AppsV1Api()
+        batch_v1 = k8s_client.BatchV1Api()
+        networking_v1 = k8s_client.NetworkingV1Api()
+        
+        console.print(f"\n[bold cyan]Resources in namespace: {namespace}[/bold cyan]\n")
+        
+        # Pods
+        pods = v1.list_namespaced_pod(namespace).items
+        table = Table(title="Pods")
+        table.add_column("Name", style="cyan")
+        table.add_column("Status", style="green")
+        table.add_column("Restarts", style="yellow")
+        for pod in pods:
+            status = pod.status.phase
+            restarts = sum([c.restart_count for c in pod.status.container_statuses]) if pod.status.container_statuses else 0
+            status_color = "green" if status == "Running" else "red"
+            table.add_row(pod.metadata.name, f"[{status_color}]{status}[/{status_color}]", str(restarts))
+        console.print(table)
+        
+        # Services
+        services = v1.list_namespaced_service(namespace).items
+        table = Table(title="Services")
+        table.add_column("Name", style="cyan")
+        table.add_column("Type", style="yellow")
+        table.add_column("Cluster IP", style="blue")
+        for svc in services:
+            table.add_row(svc.metadata.name, svc.spec.type, svc.spec.cluster_ip or "None")
+        console.print(table)
+        
+        # Deployments
+        deployments = apps_v1.list_namespaced_deployment(namespace).items
+        table = Table(title="Deployments")
+        table.add_column("Name", style="cyan")
+        table.add_column("Ready", style="green")
+        table.add_column("Available", style="yellow")
+        for dep in deployments:
+            ready = f"{dep.status.ready_replicas or 0}/{dep.status.replicas or 0}"
+            available = dep.status.available_replicas or 0
+            table.add_row(dep.metadata.name, ready, str(available))
+        console.print(table)
+        
+        # ConfigMaps
+        configmaps = v1.list_namespaced_config_map(namespace).items
+        table = Table(title="ConfigMaps")
+        table.add_column("Name", style="cyan")
+        table.add_column("Data Keys", style="yellow")
+        for cm in configmaps:
+            keys = len(cm.data) if cm.data else 0
+            table.add_row(cm.metadata.name, str(keys))
+        console.print(table)
+        
+        # Secrets
+        secrets = v1.list_namespaced_secret(namespace).items
+        table = Table(title="Secrets")
+        table.add_column("Name", style="cyan")
+        table.add_column("Type", style="yellow")
+        for secret in secrets:
+            table.add_row(secret.metadata.name, secret.type)
+        console.print(table)
+        
+        # Ingresses
+        ingresses = networking_v1.list_namespaced_ingress(namespace).items
+        if ingresses:
+            table = Table(title="Ingresses")
+            table.add_column("Name", style="cyan")
+            table.add_column("Hosts", style="yellow")
+            for ing in ingresses:
+                hosts = ", ".join([rule.host for rule in ing.spec.rules]) if ing.spec.rules else "None"
+                table.add_row(ing.metadata.name, hosts)
+            console.print(table)
+        
+        # Jobs
+        jobs = batch_v1.list_namespaced_job(namespace).items
+        if jobs:
+            table = Table(title="Jobs")
+            table.add_column("Name", style="cyan")
+            table.add_column("Completions", style="green")
+            table.add_column("Active", style="yellow")
+            for job in jobs:
+                completions = f"{job.status.succeeded or 0}/{job.spec.completions or 1}"
+                active = job.status.active or 0
+                table.add_row(job.metadata.name, completions, str(active))
+            console.print(table)
+        
+        console.print(f"\n[bold green]✓ Found {len(pods)} pods, {len(services)} services, {len(deployments)} deployments[/bold green]")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error:", str(e), markup=False)
+
+@app.command()
 def creator():
     """Show TARS creator information"""
     creator_info = """

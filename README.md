@@ -253,6 +253,7 @@ tars --install-completion zsh
 | `tars timeline` | Recent events |
 | `tars metrics` | Resource usage |
 | `tars top` | Top consumers |
+| `tars resources <ns>` | All resources in namespace |
 
 ### Troubleshooting
 

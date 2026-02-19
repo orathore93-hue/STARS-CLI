@@ -33,6 +33,7 @@ tars watch           # Live monitoring
 tars spike           # Resource spikes
 tars alert           # Custom alerts
 tars metrics         # Resource usage
+tars resources <ns>  # All resources in namespace
 ```
 
 ## 📝 Documentation
