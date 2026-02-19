@@ -5,7 +5,7 @@ from rich.table import Table
 from rich.live import Live
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from kubernetes import client, config
+from kubernetes import client as k8s_client, config
 from google import genai
 import os
 import time
@@ -124,7 +124,7 @@ Keep responses concise and actionable.
 
 {prompt}"""
     
-    response = client.models.generate_content(model='gemini-1.5-flash', contents=tars_prompt)
+    response = client.models.generate_content(model='gemini-2.0-flash', contents=tars_prompt)
     return response.text
 
 @app.command()
@@ -141,7 +141,7 @@ def setup():
         console.print("   [bold green]✓[/bold green] GEMINI_API_KEY is set")
         try:
             client = genai.Client(api_key=api_key)
-            client.models.generate_content(model='gemini-1.5-flash', contents="test")
+            client.models.generate_content(model='gemini-2.0-flash', contents="test")
             console.print("   [bold green]✓[/bold green] API key is valid\n")
         except Exception as e:
             console.print(f"   [bold red]✗[/bold red] API key invalid: {e}\n")
@@ -158,8 +158,8 @@ def setup():
         config.load_kube_config()
         console.print("   [bold green]✓[/bold green] kubectl config loaded")
         
-        v1 = client.CoreV1Api()
-        version = client.VersionApi().get_code()
+        v1 = k8s_client.CoreV1Api()
+        version = k8s_client.VersionApi().get_code()
         console.print(f"   [bold green]✓[/bold green] Cluster connected: {version.git_version}")
         
         nodes = v1.list_node()
@@ -191,11 +191,11 @@ def check():
     """Check cluster connectivity"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]✓[/bold green] Kubernetes config loaded")
         
-        version = client.VersionApi().get_code()
+        version = k8s_client.VersionApi().get_code()
         console.print(f"[bold cyan]Cluster Version:[/bold cyan] {version.git_version}")
         
         nodes = v1.list_node()
@@ -220,7 +220,7 @@ def pods(namespace: str = typer.Option("default", help="Namespace to check")):
     """Monitor pod health and detect issues"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         pods = v1.list_namespaced_pod(namespace)
         
@@ -276,7 +276,7 @@ def watch(namespace: str = typer.Option("default", help="Namespace to watch"), i
     """Real-time pod monitoring dashboard"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] watching your cluster... Press Ctrl+C to stop\n")
         
@@ -316,7 +316,7 @@ def analyze(namespace: str = typer.Option("default", help="Namespace to analyze"
     """Analyze cluster issues with TARS AI"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] analyzing cluster...\n")
         
@@ -351,7 +351,7 @@ def logs(pod_name: str, namespace: str = typer.Option("default", help="Namespace
     """Get pod logs with AI summary"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print(f"[bold cyan]Fetching logs for {pod_name}...[/bold cyan]\n")
         
@@ -375,7 +375,7 @@ def events(namespace: str = typer.Option("default", help="Namespace"), limit: in
     """Show recent cluster events"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         events = v1.list_namespaced_event(namespace)
         
@@ -410,7 +410,7 @@ def health():
     """Comprehensive cluster health check"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] Running health diagnostics...\n")
         
@@ -458,7 +458,7 @@ def diagnose(pod_name: str, namespace: str = typer.Option("default", help="Names
     """Deep dive diagnosis of a specific pod"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print(f"[bold green]TARS:[/bold green] diagnosing {pod_name}...\n")
         
@@ -513,7 +513,7 @@ def humor(level: int = typer.Argument(90, help="Humor level (0-100)")):
 def metrics(namespace: str = typer.Option("default", help="Namespace to check")):
     """Check CPU and memory usage across pods"""
     config.load_kube_config()
-    v1 = client.CoreV1Api()
+    v1 = k8s_client.CoreV1Api()
     custom_api = client.CustomObjectsApi()
     
     console.print("[bold green]TARS:[/bold green] checking resource metrics...\n")
@@ -737,7 +737,7 @@ def services(namespace: str = typer.Option("default", help="Namespace to check")
     """Monitor services and endpoints"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         services = v1.list_namespaced_service(namespace)
         
@@ -864,7 +864,7 @@ def nodes():
     """Monitor node health and resources"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         nodes = v1.list_node()
         
@@ -968,7 +968,7 @@ def volumes(namespace: str = typer.Option("default", help="Namespace to check"))
     """Monitor persistent volumes and claims"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         # PVCs
         pvcs = v1.list_namespaced_persistent_volume_claim(namespace)
@@ -1010,7 +1010,7 @@ def namespaces():
     """List all namespaces with resource counts"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         apps_v1 = client.AppsV1Api()
         
         namespaces = v1.list_namespace()
@@ -1079,7 +1079,7 @@ def restart(pod_name: str, namespace: str = typer.Option("default", help="Namesp
     """Restart a pod (delete and let controller recreate)"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         confirm = typer.confirm(f"Are you sure you want to restart {pod_name}?")
         if not confirm:
@@ -1115,7 +1115,7 @@ def errors(namespace: str = typer.Option("default", help="Namespace"), limit: in
     """Show pods with errors and crash loops"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         pods = v1.list_namespaced_pod(namespace)
         
@@ -1172,7 +1172,7 @@ def crashloop(namespace: str = typer.Option("default", help="Namespace")):
     """Detect and analyze crash looping pods"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         pods = v1.list_namespaced_pod(namespace)
         
@@ -1220,7 +1220,7 @@ def pending(namespace: str = typer.Option("default", help="Namespace")):
     """Show pending pods and why they're stuck"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         pods = v1.list_namespaced_pod(namespace)
         
@@ -1267,7 +1267,7 @@ def oom(namespace: str = typer.Option("default", help="Namespace")):
     """Detect Out of Memory killed pods"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         pods = v1.list_namespaced_pod(namespace)
         
@@ -1313,7 +1313,7 @@ def network(namespace: str = typer.Option("default", help="Namespace")):
     """Check network connectivity issues"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         networking_v1 = client.NetworkingV1Api()
         
         console.print("[bold green]TARS:[/bold green] checking network configuration...\n")
@@ -1365,7 +1365,7 @@ def quota(namespace: str = typer.Option("default", help="Namespace")):
     """Check resource quotas and usage"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         quotas = v1.list_namespaced_resource_quota(namespace)
         
@@ -1421,7 +1421,7 @@ def triage(namespace: str = typer.Option("default", help="Namespace")):
     """Quick incident triage - show all critical issues"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] Performing incident triage...\n")
         
@@ -1655,7 +1655,7 @@ def context():
             
             # Reload config for new context
             config.load_kube_config()
-            v1 = client.CoreV1Api()
+            v1 = k8s_client.CoreV1Api()
             apps_v1 = client.AppsV1Api()
             
             # Gather metrics
@@ -1763,7 +1763,7 @@ def secrets(namespace: str = typer.Option("default", help="Namespace")):
     """List secrets (names only, no values)"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         secrets = v1.list_namespaced_secret(namespace)
         
@@ -1792,7 +1792,7 @@ def configmaps(namespace: str = typer.Option("default", help="Namespace")):
     """List ConfigMaps"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         configmaps = v1.list_namespaced_config_map(namespace)
         
@@ -1843,7 +1843,7 @@ def pulse():
     """Live cluster heartbeat - real-time health pulse visualization"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] Monitoring cluster heartbeat... Press Ctrl+C to stop\n")
         
@@ -1905,7 +1905,7 @@ def timeline():
     """Show cluster events timeline - last 30 minutes"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] Analyzing cluster timeline...\n")
         
@@ -1947,7 +1947,7 @@ def compare():
     """Compare resource usage across namespaces"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] Comparing namespaces...\n")
         
@@ -2007,7 +2007,7 @@ def forecast():
     """Predict potential issues based on current trends (AI-powered)"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         with Progress(
             SpinnerColumn(),
@@ -2092,7 +2092,7 @@ def blast():
     
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print(f"[bold green]TARS:[/bold green] Calculating blast radius for {resource_type}: {resource_name}...\n")
         
@@ -2175,7 +2175,7 @@ def chaos():
     """Chaos engineering insights - find weak points in your cluster"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         apps_v1 = client.AppsV1Api()
         
         console.print("[bold green]TARS:[/bold green] Running chaos engineering analysis...\n")
@@ -2249,7 +2249,7 @@ def story():
     """Tell the story of your cluster - what happened today?"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] Let me tell you the story of your cluster today...\n")
         
@@ -2304,7 +2304,7 @@ def slo():
     """Monitor Service Level Objectives (SLOs) - SRE metrics"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         apps_v1 = client.AppsV1Api()
         
         console.print("[bold green]TARS:[/bold green] Calculating SLO metrics...\n")
@@ -2414,7 +2414,7 @@ def sli():
     """Show Service Level Indicators (SLIs) - detailed metrics"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold green]TARS:[/bold green] Gathering Service Level Indicators...\n")
         
@@ -2530,7 +2530,7 @@ def oncall(namespace: str = typer.Option("default", help="Namespace to monitor")
     """On-call engineer dashboard - everything you need in one view"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         apps_v1 = client.AppsV1Api()
         
         console.clear()
@@ -2614,7 +2614,7 @@ def autofix(namespace: str = typer.Option("default", help="Namespace"), dry_run:
     """Auto-remediate common issues (restart crashloops, scale up OOM pods)"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold yellow]🔧 TARS AutoFix - God Mode[/bold yellow]\n")
         
@@ -2663,7 +2663,7 @@ def incident_report(namespace: str = typer.Option("default", help="Namespace")):
     """Generate incident report with AI analysis"""
     try:
         config.load_kube_config()
-        v1 = client.CoreV1Api()
+        v1 = k8s_client.CoreV1Api()
         
         console.print("[bold cyan]📋 Generating Incident Report...[/bold cyan]\n")
         
