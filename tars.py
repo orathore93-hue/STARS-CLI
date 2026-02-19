@@ -3019,14 +3019,52 @@ def autofix(namespace: str = typer.Option("default", help="Namespace"), dry_run:
             if pod.status.container_statuses:
                 for container in pod.status.container_statuses:
                     if container.state.waiting and container.state.waiting.reason == "CrashLoopBackOff":
-                        if container.restart_count > 5:
-                            action = f"Restart pod: {pod.metadata.name} (restarts: {container.restart_count})"
-                            fixes_applied.append(action)
-                            console.print(f"[yellow]⚠[/yellow] {action}")
+                        # Check logs for known issues
+                        try:
+                            logs = v1.read_namespaced_pod_log(pod.metadata.name, namespace, tail_lines=50)
                             
-                            if not dry_run:
-                                v1.delete_namespaced_pod(pod.metadata.name, namespace)
-                                console.print(f"[green]✓[/green] Pod deleted and will be recreated")
+                            # Fix OTel Collector Jaeger exporter issue
+                            if "opentelemetry-collector" in pod.metadata.name and "'exporters' unknown type: \"jaeger\"" in logs:
+                                action = f"Fix OTel Collector Jaeger exporter in {pod.metadata.name}"
+                                fixes_applied.append(action)
+                                console.print(f"[yellow]⚠[/yellow] {action}")
+                                
+                                if not dry_run:
+                                    # Get the configmap
+                                    cm = v1.read_namespaced_config_map("my-otel-collector-opentelemetry-collector", namespace)
+                                    config_data = cm.data.get("relay", "")
+                                    
+                                    # Replace jaeger exporter with otlp/jaeger
+                                    if "jaeger:" in config_data and "endpoint: jaeger-collector" in config_data:
+                                        config_data = config_data.replace(
+                                            "jaeger:\n    endpoint: jaeger-collector.monitoring.svc.cluster.local:14250",
+                                            "otlp/jaeger:\n    endpoint: jaeger.monitoring.svc.cluster.local:4317"
+                                        )
+                                        config_data = config_data.replace("- jaeger\n", "- otlp/jaeger\n")
+                                        
+                                        cm.data["relay"] = config_data
+                                        v1.replace_namespaced_config_map("my-otel-collector-opentelemetry-collector", namespace, cm)
+                                        v1.delete_namespaced_pod(pod.metadata.name, namespace)
+                                        console.print(f"[green]✓[/green] Fixed OTel config and restarted pod")
+                            
+                            elif container.restart_count > 5:
+                                action = f"Restart pod: {pod.metadata.name} (restarts: {container.restart_count})"
+                                fixes_applied.append(action)
+                                console.print(f"[yellow]⚠[/yellow] {action}")
+                                
+                                if not dry_run:
+                                    v1.delete_namespaced_pod(pod.metadata.name, namespace)
+                                    console.print(f"[green]✓[/green] Pod deleted and will be recreated")
+                        except:
+                            # If can't read logs, just restart if high restart count
+                            if container.restart_count > 5:
+                                action = f"Restart pod: {pod.metadata.name} (restarts: {container.restart_count})"
+                                fixes_applied.append(action)
+                                console.print(f"[yellow]⚠[/yellow] {action}")
+                                
+                                if not dry_run:
+                                    v1.delete_namespaced_pod(pod.metadata.name, namespace)
+                                    console.print(f"[green]✓[/green] Pod deleted and will be recreated")
         
         # Find OOMKilled pods and suggest scaling
         for pod in pods.items:
