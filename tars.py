@@ -2815,5 +2815,269 @@ def god():
     [bold green]💡 Pro Tip:[/bold green] Start with 'tars oncall' for a complete overview
     """)
 
+@app.command()
+def alert(
+    namespace: str = typer.Option("default", help="Namespace to monitor"),
+    threshold_cpu: float = typer.Option(80.0, help="CPU threshold percentage"),
+    threshold_memory: float = typer.Option(80.0, help="Memory threshold percentage"),
+    interval: int = typer.Option(30, help="Check interval in seconds")
+):
+    """Real-time alerting for SREs - monitors and alerts on threshold breaches"""
+    console.print(f"[bold cyan]🚨 TARS Alert Monitor Started[/bold cyan]")
+    console.print(f"Namespace: {namespace} | CPU: {threshold_cpu}% | Memory: {threshold_memory}% | Interval: {interval}s\n")
+    
+    try:
+        config.load_kube_config()
+        v1 = k8s_client.CoreV1Api()
+        
+        alert_count = 0
+        
+        while True:
+            try:
+                pods = v1.list_namespaced_pod(namespace)
+                alerts = []
+                
+                for pod in pods.items:
+                    if pod.status.phase == "Running":
+                        # Check for restarts
+                        for container_status in pod.status.container_statuses or []:
+                            if container_status.restart_count > 5:
+                                alerts.append(f"🔄 {pod.metadata.name}: {container_status.restart_count} restarts")
+                    
+                    elif pod.status.phase in ["Failed", "Pending"]:
+                        alerts.append(f"⚠️  {pod.metadata.name}: {pod.status.phase}")
+                
+                if alerts:
+                    alert_count += len(alerts)
+                    console.print(f"\n[bold red]⚠️  ALERTS DETECTED ({datetime.now().strftime('%H:%M:%S')})[/bold red]")
+                    for alert in alerts:
+                        console.print(f"  {alert}")
+                    console.print(f"\n[dim]Total alerts: {alert_count}[/dim]")
+                else:
+                    console.print(f"[dim]{datetime.now().strftime('%H:%M:%S')} - All systems nominal[/dim]")
+                
+                time.sleep(interval)
+                
+            except KeyboardInterrupt:
+                console.print("\n[bold yellow]Alert monitor stopped[/bold yellow]")
+                break
+                
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def runbook(pod_name: str = typer.Argument(..., help="Pod name to generate runbook for")):
+    """Generate incident runbook for a pod - SRE documentation"""
+    try:
+        config.load_kube_config()
+        v1 = k8s_client.CoreV1Api()
+        
+        console.print(f"\n[bold cyan]📖 Generating Runbook for: {pod_name}[/bold cyan]\n")
+        
+        # Find pod
+        pods = v1.list_pod_for_all_namespaces()
+        target_pod = None
+        for pod in pods.items:
+            if pod.metadata.name.startswith(pod_name):
+                target_pod = pod
+                break
+        
+        if not target_pod:
+            console.print(f"[bold red]✗[/bold red] Pod not found")
+            return
+        
+        namespace = target_pod.metadata.namespace
+        
+        # Generate runbook
+        runbook = f"""
+╔══════════════════════════════════════════════════════════════╗
+║                    INCIDENT RUNBOOK                          ║
+╚══════════════════════════════════════════════════════════════╝
+
+📋 POD INFORMATION
+  Name:      {target_pod.metadata.name}
+  Namespace: {namespace}
+  Status:    {target_pod.status.phase}
+  Node:      {target_pod.spec.node_name}
+
+🔍 DIAGNOSTIC STEPS
+
+1. Check Pod Status
+   $ tars diagnose {target_pod.metadata.name}
+
+2. View Recent Logs
+   $ tars logs {target_pod.metadata.name}
+
+3. Check Events
+   $ kubectl describe pod {target_pod.metadata.name} -n {namespace}
+
+4. Check Resource Usage
+   $ tars metrics
+
+🔧 REMEDIATION STEPS
+
+If CrashLoopBackOff:
+  1. Check logs: tars logs {target_pod.metadata.name}
+  2. Verify config: kubectl get configmap -n {namespace}
+  3. Restart: tars restart {target_pod.metadata.name}
+
+If OOMKilled:
+  1. Check memory limits: kubectl get pod {target_pod.metadata.name} -n {namespace} -o yaml
+  2. Increase limits or scale: tars smart-scale <deployment>
+
+If Pending:
+  1. Check node resources: tars nodes
+  2. Check events: tars events
+
+📞 ESCALATION
+  - Check blast radius: tars blast {target_pod.metadata.name}
+  - Generate incident report: tars incident-report
+  - Review SLO impact: tars slo
+
+⏱️  Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        console.print(runbook)
+        
+        # Save to file
+        filename = f"runbook_{target_pod.metadata.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        with open(filename, 'w') as f:
+            f.write(runbook)
+        console.print(f"\n[bold green]✓[/bold green] Runbook saved to: {filename}")
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def snapshot():
+    """Take a complete cluster snapshot for incident analysis"""
+    console.print("[bold cyan]📸 Taking Cluster Snapshot...[/bold cyan]\n")
+    
+    try:
+        config.load_kube_config()
+        v1 = k8s_client.CoreV1Api()
+        apps_v1 = k8s_client.AppsV1Api()
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        snapshot_dir = f"tars_snapshot_{timestamp}"
+        os.makedirs(snapshot_dir, exist_ok=True)
+        
+        # Collect data
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
+            
+            task = progress.add_task("Collecting pods...", total=None)
+            pods = v1.list_pod_for_all_namespaces()
+            with open(f"{snapshot_dir}/pods.txt", 'w') as f:
+                for pod in pods.items:
+                    f.write(f"{pod.metadata.namespace}/{pod.metadata.name} - {pod.status.phase}\n")
+            progress.update(task, completed=True)
+            
+            task = progress.add_task("Collecting events...", total=None)
+            events = v1.list_event_for_all_namespaces()
+            with open(f"{snapshot_dir}/events.txt", 'w') as f:
+                for event in events.items:
+                    f.write(f"{event.last_timestamp} - {event.involved_object.name}: {event.message}\n")
+            progress.update(task, completed=True)
+            
+            task = progress.add_task("Collecting deployments...", total=None)
+            deployments = apps_v1.list_deployment_for_all_namespaces()
+            with open(f"{snapshot_dir}/deployments.txt", 'w') as f:
+                for dep in deployments.items:
+                    f.write(f"{dep.metadata.namespace}/{dep.metadata.name} - {dep.spec.replicas} replicas\n")
+            progress.update(task, completed=True)
+            
+            task = progress.add_task("Collecting nodes...", total=None)
+            nodes = v1.list_node()
+            with open(f"{snapshot_dir}/nodes.txt", 'w') as f:
+                for node in nodes.items:
+                    status = "Ready" if any(c.type == "Ready" and c.status == "True" for c in node.status.conditions) else "NotReady"
+                    f.write(f"{node.metadata.name} - {status}\n")
+            progress.update(task, completed=True)
+        
+        # Create summary
+        summary = f"""
+TARS CLUSTER SNAPSHOT
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+Total Pods: {len(pods.items)}
+Total Deployments: {len(deployments.items)}
+Total Nodes: {len(nodes.items)}
+Total Events: {len(events.items)}
+
+Files:
+  - pods.txt
+  - events.txt
+  - deployments.txt
+  - nodes.txt
+
+Use this snapshot for:
+  - Incident post-mortems
+  - Capacity planning
+  - Compliance audits
+  - Historical analysis
+"""
+        
+        with open(f"{snapshot_dir}/README.txt", 'w') as f:
+            f.write(summary)
+        
+        console.print(f"[bold green]✓[/bold green] Snapshot saved to: {snapshot_dir}/")
+        console.print(summary)
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
+@app.command()
+def diff(context1: str = typer.Argument(...), context2: str = typer.Argument(...)):
+    """Compare two Kubernetes contexts - useful for multi-cluster SREs"""
+    console.print(f"[bold cyan]🔄 Comparing Contexts[/bold cyan]")
+    console.print(f"Context 1: {context1}")
+    console.print(f"Context 2: {context2}\n")
+    
+    try:
+        from kubernetes.config import list_kube_config_contexts
+        
+        contexts, active = list_kube_config_contexts()
+        context_names = [c['name'] for c in contexts]
+        
+        if context1 not in context_names or context2 not in context_names:
+            console.print("[bold red]✗[/bold red] One or both contexts not found")
+            return
+        
+        def get_cluster_info(ctx):
+            config.load_kube_config(context=ctx)
+            v1 = k8s_client.CoreV1Api()
+            apps_v1 = k8s_client.AppsV1Api()
+            
+            pods = v1.list_pod_for_all_namespaces()
+            deployments = apps_v1.list_deployment_for_all_namespaces()
+            nodes = v1.list_node()
+            
+            return {
+                'pods': len(pods.items),
+                'deployments': len(deployments.items),
+                'nodes': len(nodes.items),
+                'running_pods': len([p for p in pods.items if p.status.phase == "Running"]),
+                'failed_pods': len([p for p in pods.items if p.status.phase == "Failed"])
+            }
+        
+        info1 = get_cluster_info(context1)
+        info2 = get_cluster_info(context2)
+        
+        table = Table(title="Cluster Comparison")
+        table.add_column("Metric", style="cyan")
+        table.add_column(context1, style="green")
+        table.add_column(context2, style="yellow")
+        table.add_column("Diff", style="magenta")
+        
+        for key in info1.keys():
+            diff = info2[key] - info1[key]
+            diff_str = f"+{diff}" if diff > 0 else str(diff)
+            table.add_row(key.replace('_', ' ').title(), str(info1[key]), str(info2[key]), diff_str)
+        
+        console.print(table)
+        
+    except Exception as e:
+        console.print(f"[bold red]✗[/bold red] Error: {e}")
+
 if __name__ == "__main__":
     app()
