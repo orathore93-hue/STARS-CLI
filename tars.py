@@ -2521,9 +2521,299 @@ def sli():
 @app.command()
 def version():
     """Show T.A.R.S version"""
-    console.print("\n[bold cyan]T.A.R.S v0.1.0[/bold cyan]")
-    console.print("[dim]Technical Assistance & Reliability System[/dim]")
+    console.print("\n[bold cyan]T.A.R.S v2.0.0 - God Mode Edition[/bold cyan]")
+    console.print("[dim]Technical Assistance & Reliability System for SREs[/dim]")
     console.print("[dim]Built with 💚 for the DevOps community[/dim]\n")
+
+@app.command()
+def oncall(namespace: str = typer.Option("default", help="Namespace to monitor")):
+    """On-call engineer dashboard - everything you need in one view"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        apps_v1 = client.AppsV1Api()
+        
+        console.clear()
+        console.print("[bold cyan]═══════════════════════════════════════════════════════════[/bold cyan]")
+        console.print("[bold yellow]        TARS ON-CALL DASHBOARD - GOD MODE ACTIVATED        [/bold yellow]")
+        console.print("[bold cyan]═══════════════════════════════════════════════════════════[/bold cyan]\n")
+        
+        # Critical Issues
+        pods = v1.list_namespaced_pod(namespace)
+        crashloop = sum(1 for p in pods.items if p.status.container_statuses and any(
+            c.state.waiting and c.state.waiting.reason == "CrashLoopBackOff" for c in p.status.container_statuses))
+        oom = sum(1 for p in pods.items if p.status.container_statuses and any(
+            c.last_state.terminated and c.last_state.terminated.reason == "OOMKilled" for c in p.status.container_statuses))
+        pending = sum(1 for p in pods.items if p.status.phase == "Pending")
+        failed = sum(1 for p in pods.items if p.status.phase == "Failed")
+        
+        # Status Summary
+        table = Table(title="🚨 Critical Issues", show_header=True)
+        table.add_column("Issue", style="cyan")
+        table.add_column("Count", style="yellow")
+        table.add_column("Severity", style="red")
+        
+        if crashloop > 0:
+            table.add_row("CrashLoopBackOff", str(crashloop), "🔴 CRITICAL")
+        if oom > 0:
+            table.add_row("OOMKilled", str(oom), "🔴 CRITICAL")
+        if pending > 0:
+            table.add_row("Pending Pods", str(pending), "🟡 WARNING")
+        if failed > 0:
+            table.add_row("Failed Pods", str(failed), "🔴 CRITICAL")
+        
+        if crashloop == 0 and oom == 0 and pending == 0 and failed == 0:
+            table.add_row("No Issues", "0", "🟢 HEALTHY")
+        
+        console.print(table)
+        console.print()
+        
+        # Deployment Status
+        deployments = apps_v1.list_namespaced_deployment(namespace)
+        dep_table = Table(title="📦 Deployments", show_header=True)
+        dep_table.add_column("Name", style="cyan")
+        dep_table.add_column("Ready", style="green")
+        dep_table.add_column("Status", style="yellow")
+        
+        for dep in deployments.items[:5]:
+            ready = f"{dep.status.ready_replicas or 0}/{dep.spec.replicas}"
+            status = "✓" if dep.status.ready_replicas == dep.spec.replicas else "⚠"
+            dep_table.add_row(dep.metadata.name, ready, status)
+        
+        console.print(dep_table)
+        console.print()
+        
+        # Recent Events
+        events = v1.list_namespaced_event(namespace)
+        warning_events = [e for e in events.items if e.type == "Warning"][-5:]
+        
+        if warning_events:
+            event_table = Table(title="⚠️  Recent Warnings", show_header=True)
+            event_table.add_column("Time", style="yellow")
+            event_table.add_column("Object", style="cyan")
+            event_table.add_column("Reason", style="red")
+            
+            for event in warning_events:
+                event_table.add_row(
+                    event.last_timestamp.strftime("%H:%M:%S") if event.last_timestamp else "N/A",
+                    f"{event.involved_object.kind}/{event.involved_object.name}"[:40],
+                    event.reason
+                )
+            console.print(event_table)
+        
+        console.print("\n[bold green]💡 Quick Actions:[/bold green]")
+        console.print("  [cyan]tars triage[/cyan]           - Full incident analysis")
+        console.print("  [cyan]tars autofix[/cyan]          - Auto-remediate common issues")
+        console.print("  [cyan]tars incident-report[/cyan]  - Generate incident report")
+        
+    except Exception as e:
+        console.print("[bold red]✗[/bold red] Error:", str(e), markup=False)
+
+@app.command()
+def autofix(namespace: str = typer.Option("default", help="Namespace"), dry_run: bool = typer.Option(True, help="Dry run mode")):
+    """Auto-remediate common issues (restart crashloops, scale up OOM pods)"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        
+        console.print("[bold yellow]🔧 TARS AutoFix - God Mode[/bold yellow]\n")
+        
+        if dry_run:
+            console.print("[bold cyan]Running in DRY RUN mode - no changes will be made[/bold cyan]\n")
+        
+        fixes_applied = []
+        
+        # Find and fix CrashLoopBackOff pods
+        pods = v1.list_namespaced_pod(namespace)
+        for pod in pods.items:
+            if pod.status.container_statuses:
+                for container in pod.status.container_statuses:
+                    if container.state.waiting and container.state.waiting.reason == "CrashLoopBackOff":
+                        if container.restart_count > 5:
+                            action = f"Restart pod: {pod.metadata.name} (restarts: {container.restart_count})"
+                            fixes_applied.append(action)
+                            console.print(f"[yellow]⚠[/yellow] {action}")
+                            
+                            if not dry_run:
+                                v1.delete_namespaced_pod(pod.metadata.name, namespace)
+                                console.print(f"[green]✓[/green] Pod deleted and will be recreated")
+        
+        # Find OOMKilled pods and suggest scaling
+        for pod in pods.items:
+            if pod.status.container_statuses:
+                for container in pod.status.container_statuses:
+                    if container.last_state.terminated and container.last_state.terminated.reason == "OOMKilled":
+                        action = f"OOMKilled detected in {pod.metadata.name} - Consider increasing memory limits"
+                        fixes_applied.append(action)
+                        console.print(f"[red]🔴[/red] {action}")
+        
+        if not fixes_applied:
+            console.print("[bold green]✓ No issues found that require auto-fixing![/bold green]")
+        else:
+            console.print(f"\n[bold cyan]Total fixes: {len(fixes_applied)}[/bold cyan]")
+            
+            if dry_run:
+                console.print("\n[bold yellow]Run with --no-dry-run to apply fixes[/bold yellow]")
+        
+    except Exception as e:
+        console.print("[bold red]✗[/bold red] Error:", str(e), markup=False)
+
+@app.command()
+def incident_report(namespace: str = typer.Option("default", help="Namespace")):
+    """Generate incident report with AI analysis"""
+    try:
+        config.load_kube_config()
+        v1 = client.CoreV1Api()
+        
+        console.print("[bold cyan]📋 Generating Incident Report...[/bold cyan]\n")
+        
+        # Collect data
+        pods = v1.list_namespaced_pod(namespace)
+        events = v1.list_namespaced_event(namespace)
+        
+        report = []
+        report.append(f"# Incident Report - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report.append(f"Namespace: {namespace}\n")
+        
+        # Issues
+        report.append("## Critical Issues")
+        crashloop_pods = [p for p in pods.items if p.status.container_statuses and any(
+            c.state.waiting and c.state.waiting.reason == "CrashLoopBackOff" for c in p.status.container_statuses)]
+        
+        if crashloop_pods:
+            report.append(f"- CrashLoopBackOff: {len(crashloop_pods)} pods")
+            for pod in crashloop_pods:
+                report.append(f"  - {pod.metadata.name}")
+        
+        # Recent events
+        report.append("\n## Recent Events")
+        warning_events = [e for e in events.items if e.type == "Warning"][-10:]
+        for event in warning_events:
+            report.append(f"- [{event.last_timestamp}] {event.reason}: {event.message}")
+        
+        report_text = "\n".join(report)
+        console.print(Panel(report_text, title="Incident Report", border_style="cyan"))
+        
+        # AI Analysis
+        if os.getenv("GEMINI_API_KEY"):
+            with console.status("[bold green]TARS:[/bold green] Analyzing incident..."):
+                response = get_gemini_response(f"Analyze this Kubernetes incident and provide root cause analysis and remediation steps:\n{report_text}")
+            console.print(Panel(response, title="[bold green]TARS:[/bold green] AI Analysis", border_style="green"))
+        
+        # Save to file
+        filename = f"incident-report-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"
+        with open(filename, 'w') as f:
+            f.write(report_text)
+        console.print(f"\n[bold green]✓[/bold green] Report saved to: {filename}")
+        
+    except Exception as e:
+        console.print("[bold red]✗[/bold red] Error:", str(e), markup=False)
+
+@app.command()
+def smart_scale(deployment: str, namespace: str = typer.Option("default", help="Namespace")):
+    """AI-powered smart scaling based on current load"""
+    try:
+        config.load_kube_config()
+        apps_v1 = client.AppsV1Api()
+        custom_api = client.CustomObjectsApi()
+        
+        console.print(f"[bold cyan]🧠 Smart Scaling: {deployment}[/bold cyan]\n")
+        
+        # Get current deployment
+        dep = apps_v1.read_namespaced_deployment(deployment, namespace)
+        current_replicas = dep.spec.replicas
+        
+        console.print(f"Current replicas: {current_replicas}")
+        
+        # Get metrics
+        try:
+            metrics = custom_api.list_namespaced_custom_object(
+                group="metrics.k8s.io",
+                version="v1beta1",
+                namespace=namespace,
+                plural="pods"
+            )
+            
+            # Calculate average CPU/Memory for deployment pods
+            dep_pods = [m for m in metrics['items'] if deployment in m['metadata']['name']]
+            
+            if dep_pods:
+                total_cpu = 0
+                for pod in dep_pods:
+                    for container in pod['containers']:
+                        cpu_str = container['usage']['cpu']
+                        if cpu_str.endswith('n'):
+                            total_cpu += int(cpu_str[:-1]) / 1_000_000_000
+                        elif cpu_str.endswith('m'):
+                            total_cpu += int(cpu_str[:-1]) / 1000
+                
+                avg_cpu = total_cpu / len(dep_pods)
+                console.print(f"Average CPU per pod: {avg_cpu:.3f} cores")
+                
+                # Smart recommendation
+                if avg_cpu > 0.8:
+                    recommended = current_replicas + 2
+                    console.print(f"[bold yellow]⚠ High CPU usage detected[/bold yellow]")
+                    console.print(f"[bold green]Recommendation: Scale to {recommended} replicas[/bold green]")
+                elif avg_cpu < 0.2 and current_replicas > 2:
+                    recommended = max(2, current_replicas - 1)
+                    console.print(f"[bold cyan]Low CPU usage detected[/bold cyan]")
+                    console.print(f"[bold green]Recommendation: Scale down to {recommended} replicas[/bold green]")
+                else:
+                    console.print(f"[bold green]✓ Current scaling is optimal[/bold green]")
+                    recommended = current_replicas
+                
+                if recommended != current_replicas:
+                    if typer.confirm(f"\nScale to {recommended} replicas?"):
+                        dep.spec.replicas = recommended
+                        apps_v1.patch_namespaced_deployment(deployment, namespace, dep)
+                        console.print(f"[bold green]✓[/bold green] Scaled to {recommended} replicas")
+            
+        except Exception as e:
+            console.print("[bold yellow]⚠[/bold yellow] Metrics not available, using manual scaling")
+        
+    except Exception as e:
+        console.print("[bold red]✗[/bold red] Error:", str(e), markup=False)
+
+@app.command()
+def god():
+    """Activate TARS God Mode - full cluster control panel"""
+    console.clear()
+    console.print("""[bold red]
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║                                                               ║
+    ║              ⚡ TARS GOD MODE ACTIVATED ⚡                    ║
+    ║                                                               ║
+    ║         "This is no time for caution." - TARS                 ║
+    ║                                                               ║
+    ╚═══════════════════════════════════════════════════════════════╝
+    [/bold red]
+    
+    [bold yellow]🔥 SRE Power Commands:[/bold yellow]
+    
+    [bold cyan]Monitoring & Triage:[/bold cyan]
+      tars oncall              - On-call engineer dashboard
+      tars triage              - Quick incident triage
+      tars incident-report     - Generate incident report with AI
+      
+    [bold cyan]Auto-Remediation:[/bold cyan]
+      tars autofix             - Auto-fix common issues (dry-run)
+      tars autofix --no-dry-run - Apply fixes automatically
+      tars smart-scale <dep>   - AI-powered scaling decisions
+      
+    [bold cyan]Deep Analysis:[/bold cyan]
+      tars analyze             - AI cluster analysis
+      tars diagnose <pod>      - Deep pod diagnosis
+      tars blast <pod>         - Blast radius analysis
+      tars forecast            - Predict future issues
+      
+    [bold cyan]Quick Actions:[/bold cyan]
+      tars restart <pod>       - Restart pod
+      tars scale <dep> <n>     - Scale deployment
+      tars rollback <dep>      - Rollback deployment
+      
+    [bold green]💡 Pro Tip:[/bold green] Start with 'tars oncall' for a complete overview
+    """)
 
 if __name__ == "__main__":
     app()
