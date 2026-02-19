@@ -32,6 +32,7 @@ dependencies = [
     "rich",
     "kubernetes",
     "google-genai",
+    "prometheus-api-client",
 ]
 
 [project.urls]

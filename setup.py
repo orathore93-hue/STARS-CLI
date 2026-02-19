@@ -9,6 +9,7 @@ setup(
         "rich",
         "kubernetes",
         "google-genai",
+        "prometheus-api-client",
     ],
     entry_points={
         "console_scripts": [
