@@ -1,0 +1,18 @@
+TARS: Running health diagnostics...
+
+           Cluster Health Report           
+┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━┓
+┃ Metric                 ┃ Value ┃ Status ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━┩
+│ Nodes                  │ 3/3   │ ✓      │
+│ Pods Running           │ 61/62 │ ⚠      │
+│ CrashLoopBackOff       │ 0     │ ✓      │
+│ Pending Pods           │ 0     │ ✓      │
+│ Failed Pods            │ 0     │ ✓      │
+│ OOMKilled              │ 0     │ ✓      │
+│ Image Pull Errors      │ 0     │ ✓      │
+│ Unhealthy Deployments  │ 0     │ ✓      │
+│ Services w/o Endpoints │ 6     │ ⚠      │
+└────────────────────────┴───────┴────────┘
+
+TARS: Cluster health is optimal. I'd give it a 95% rating.

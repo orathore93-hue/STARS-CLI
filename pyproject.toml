@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tars-cli"
-version = "3.0.0"
+version = "3.1.0"
 description = "AI-powered Kubernetes cluster monitoring and troubleshooting tool for SREs"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["kubernetes", "monitoring", "ai", "devops", "k8s", "cli", "sre", "oncall"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
@@ -28,11 +28,12 @@ classifiers = [
 ]
 
 dependencies = [
-    "typer",
-    "rich",
-    "kubernetes",
-    "google-genai",
-    "prometheus-api-client",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "kubernetes>=28.0.0",
+    "google-genai>=0.2.0",
+    "prometheus-api-client>=0.5.0",
+    "pyyaml>=6.0",
 ]
 
 [project.urls]
@@ -41,7 +42,8 @@ Repository = "https://github.com/orathore93-hue/tars-cli"
 Issues = "https://github.com/orathore93-hue/tars-cli/issues"
 
 [project.scripts]
-tars = "tars:app"
+tars = "tars.cli:main"
 
 [tool.setuptools]
-py-modules = ["tars"]
+packages = ["tars"]
+package-dir = {"" = "src"}
