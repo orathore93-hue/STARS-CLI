@@ -2,13 +2,13 @@ from setuptools import setup
 
 setup(
     name="tars-cli",
-    version="0.1.0",
+    version="2.0.0",
     py_modules=["tars"],
     install_requires=[
         "typer",
         "rich",
         "kubernetes",
-        "google-generativeai",
+        "google-genai",
     ],
     entry_points={
         "console_scripts": [

@@ -4,17 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tars-cli"
-version = "0.1.0"
-description = "AI-powered Kubernetes cluster monitoring and troubleshooting tool"
+version = "2.0.0"
+description = "AI-powered Kubernetes cluster monitoring and troubleshooting tool for SREs"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
     {name = "Omer Rathore", email = "orathore93@gmail.com"}
 ]
-keywords = ["kubernetes", "monitoring", "ai", "devops", "k8s", "cli"]
+keywords = ["kubernetes", "monitoring", "ai", "devops", "k8s", "cli", "sre", "oncall"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
@@ -31,7 +31,7 @@ dependencies = [
     "typer",
     "rich",
     "kubernetes",
-    "google-generativeai",
+    "google-genai",
 ]
 
 [project.urls]
