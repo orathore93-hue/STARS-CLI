@@ -785,7 +785,10 @@ def creator():
     """Show TARS creator info"""
     console.print("\n[bold cyan]TARS CLI[/bold cyan]")
     console.print("[bold]Technical Assistance & Reliability System[/bold]")
-    console.print("\n[dim]Built for Kubernetes SREs and DevOps Engineers[/dim]")
+    console.print("\n[bold yellow]Created by:[/bold yellow]")
+    console.print("  [cyan]Omer Rathore[/cyan]")
+    console.print("  [dim]orathore93@gmail.com[/dim]")
+    console.print("\n[dim]Built for Kubernetes SREs and DevOps Engineers[/dim]\n")
 
 
 @app.command()
