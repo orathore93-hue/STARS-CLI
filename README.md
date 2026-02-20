@@ -23,7 +23,7 @@ STARS is the ultimate **Kubernetes monitoring and incident response tool** built
 - **Documents everything** - Auto-generates runbooks and incident reports
 - **Security first** - RBAC enforcement, input validation, audit logging
 
-## 🚀 Quick Start
+## 🚀 Installation
 
 ### One-Line Install (Recommended)
 
@@ -31,7 +31,13 @@ STARS is the ultimate **Kubernetes monitoring and incident response tool** built
 curl -sSL https://raw.githubusercontent.com/orathore93-hue/STARS-CLI/main/install.sh | bash
 ```
 
-This automatically downloads the correct binary for your OS and architecture.
+**What happens during installation:**
+1. Detects your OS (Linux/macOS/Windows) and architecture (amd64/arm64)
+2. Downloads the latest release binary from GitHub
+3. **Verifies SHA-256 checksum** to ensure binary integrity
+4. Installs to `/usr/local/bin` (requires sudo)
+
+**Security:** The installer automatically verifies cryptographic checksums before installation. If the binary has been tampered with or corrupted, installation will fail immediately with an error. This protects against man-in-the-middle attacks and compromised downloads.
 
 ### Alternative: Install via pip
 
@@ -42,7 +48,7 @@ pip install stars-cli
 ### Get Started
 
 ```bash
-# Initialize
+# Initialize and configure
 stars init
 
 # Verify RBAC permissions (recommended)
@@ -52,7 +58,38 @@ kubectl auth can-i --list
 stars oncall
 ```
 
-## 🔒 Security & Privacy
+## 🔒 Security & Authentication
+
+### Secure Credential Storage
+
+STARS uses **OS-native encrypted storage** for sensitive credentials instead of plaintext files:
+
+| Platform | Storage Backend | Encryption |
+|----------|----------------|------------|
+| **macOS** | Keychain | AES-256 |
+| **Windows** | Credential Manager | DPAPI |
+| **Linux** | Secret Service (GNOME/KDE) | Encrypted |
+
+**First-time setup:**
+```bash
+# Store your Gemini API key securely
+stars set-api-key
+# Enter your API key when prompted (input hidden)
+```
+
+Your API key is encrypted and stored in your OS keychain. STARS will retrieve it automatically on subsequent runs.
+
+**Important:** On first use, your OS may prompt you to grant STARS access to the keychain. This is standard behavior for secure CLI tools (similar to AWS CLI, Docker, or kubectl). Click "Allow" to proceed.
+
+**For CI/CD environments:**
+```bash
+# Use environment variable for headless servers
+export GEMINI_API_KEY='your-key-here'
+```
+
+STARS automatically falls back to environment variables when keychain access is unavailable.
+
+## 🔐 Security & Privacy
 
 **STARS is production-ready with enterprise-grade security:**
 
