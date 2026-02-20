@@ -12,6 +12,9 @@ setup(
         "google-genai>=0.2.0",
         "prometheus-api-client>=0.5.0",
         "pyyaml>=6.0",
+        "pydantic>=2.0.0",
+        "pydantic-settings>=2.0.0",
+        "keyring>=24.0.0",
     ],
     entry_points={
         "console_scripts": [
