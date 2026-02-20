@@ -25,10 +25,23 @@ STARS is the ultimate **Kubernetes monitoring and incident response tool** built
 
 ## 🚀 Quick Start
 
-```bash
-# Install
-pip install stars-cli
+### One-Line Install (Recommended)
 
+```bash
+curl -sSL https://raw.githubusercontent.com/orathore93-hue/STARS-CLI/main/install.sh | bash
+```
+
+This automatically downloads the correct binary for your OS and architecture.
+
+### Alternative: Install via pip
+
+```bash
+pip install stars-cli
+```
+
+### Get Started
+
+```bash
 # Initialize
 stars init
 

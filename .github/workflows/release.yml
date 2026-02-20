@@ -1,0 +1,64 @@
+name: Build and Release Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} binary
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-20.04
+            asset_name: stars-linux-amd64
+            binary_name: stars
+          - os: macos-latest
+            asset_name: stars-darwin-arm64
+            binary_name: stars
+          - os: windows-latest
+            asset_name: stars-windows-amd64.exe
+            binary_name: stars.exe
+
+    steps:
+      # Checkout repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Setup Python 3.10
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Install dependencies and PyInstaller
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pyinstaller
+
+      # Build single-file executable with PyInstaller
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller --onefile --name ${{ matrix.binary_name }} src/stars/cli.py
+
+      # Rename binary to platform-specific name
+      - name: Rename binary
+        shell: bash
+        run: |
+          cd dist
+          mv ${{ matrix.binary_name }} ${{ matrix.asset_name }}
+
+      # Upload binary to GitHub Release
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/${{ matrix.asset_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
