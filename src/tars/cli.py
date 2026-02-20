@@ -26,6 +26,23 @@ TARS_BANNER = """[bold cyan]
     ╚════════════════════════════════════════════════════════════╝
 [/bold cyan]"""
 
+TARS_ROBOT = """[bold cyan]
+        ╔═══════════════════════════════════╗
+        ║   ┌─────────────────────────┐     ║
+        ║   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │     ║
+        ║   │  ▓ [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] T.A.R.S [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] ▓  │           ║
+        ║   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │     ║
+        ║   │  ▓  [/bold cyan][bold green]═══════════[/bold green][bold cyan]  ▓  │         ║
+        ║   │  ▓  [/bold cyan][bold green]═══════════[/bold green][bold cyan]  ▓  │         ║
+        ║   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │     ║
+        ║   └─────────────────────────┘     ║
+        ║         ║           ║             ║
+        ║      ┌──┴──┐     ┌──┴──┐          ║
+        ║      │ ▓▓▓ │     │ ▓▓▓ │          ║
+        ║      └─────┘     └─────┘          ║
+        ╚═══════════════════════════════════╝
+[/bold cyan]"""
+
 # Setup logging
 logging.basicConfig(
     level=logging.WARNING,
@@ -811,6 +828,7 @@ def welcome():
     
     console.clear()
     console.print(TARS_BANNER)
+    console.print(TARS_ROBOT)
     console.print(f"\n[bold green]TARS:[/bold green] [italic]{random.choice(quotes)}[/italic]")
     console.print("[dim italic]Your companion while you Kubersnaut.[/dim italic]\n")
     
