@@ -87,7 +87,7 @@ def setup():
     console.print("[bold]TARS CLI Setup[/bold]\n")
     
     # Check Gemini API key
-    if config.gemini_api_key:
+    if config.settings.gemini_api_key:
         print_success("GEMINI_API_KEY configured")
     else:
         print_error("GEMINI_API_KEY not set")
@@ -102,8 +102,8 @@ def setup():
         print_error(f"Kubernetes connection failed: {e}")
     
     # Check Prometheus
-    if config.prometheus_url:
-        print_success(f"Prometheus configured: {config.prometheus_url}")
+    if config.settings.prometheus_url:
+        print_success(f"Prometheus configured: {config.settings.prometheus_url}")
     else:
         print_info("Prometheus not configured (optional)")
         console.print("  Set with: export PROMETHEUS_URL='http://prometheus:9090'\n")
