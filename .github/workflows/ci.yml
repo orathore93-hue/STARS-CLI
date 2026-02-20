@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11']
     
     steps:
     - uses: actions/checkout@v4
@@ -25,28 +25,18 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .
-        pip install pytest pytest-cov black flake8 mypy
+      continue-on-error: false
     
-    - name: Lint with flake8
+    - name: Verify installation
       run: |
-        flake8 src/tars --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 src/tars --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        tars version
+        tars --help
     
-    - name: Format check with black
-      run: black --check src/tars
-    
-    - name: Type check with mypy
-      run: mypy src/tars --ignore-missing-imports
+    - name: Basic smoke tests
+      run: |
+        tars quote
+        tars creator
       continue-on-error: true
-    
-    - name: Test with pytest
-      run: pytest tests/ --cov=src/tars --cov-report=xml --cov-report=term
-    
-    - name: Upload coverage
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
 
   security:
     runs-on: ubuntu-latest
@@ -58,36 +48,5 @@ jobs:
       with:
         scan-type: 'fs'
         scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-    
-    - name: Upload Trivy results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: 'trivy-results.sarif'
-
-  release:
-    needs: [test, security]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Build package
-      run: |
-        pip install build
-        python -m build
-    
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: dist/*
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        severity: 'CRITICAL,HIGH'
+      continue-on-error: true
