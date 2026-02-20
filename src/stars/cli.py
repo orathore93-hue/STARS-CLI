@@ -30,10 +30,10 @@ STARS_ROBOT = """[bold cyan]
         ╔═══════════════════════════════════╗
         ║   ┌─────────────────────────┐     ║
         ║   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │     ║
-        ║   │  ▓ [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] S.T.A.R.S [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] ▓  │     ║
+        ║   │  ▓ [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] S.T.A.R.S [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] ▓      │     ║
         ║   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │     ║
-        ║   │  ▓  [/bold cyan][bold green]═══════════[/bold green][bold cyan]  ▓  │     ║
-        ║   │  ▓  [/bold cyan][bold green]═══════════[/bold green][bold cyan]  ▓  │     ║
+        ║   │  ▓  [/bold cyan][bold green]═══════════[/bold green][bold cyan]  ▓      │     ║
+        ║   │  ▓  [/bold cyan][bold green]═══════════[/bold green][bold cyan]  ▓      │     ║
         ║   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │     ║
         ║   └─────────────────────────┘     ║
         ║         ║           ║             ║
