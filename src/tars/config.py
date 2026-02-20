@@ -13,13 +13,36 @@ TARS_DIR.mkdir(exist_ok=True, mode=0o700)  # Only owner can read/write/execute
 CONFIG_FILE = TARS_DIR / "config.yaml"
 LOG_FILE = TARS_DIR / "tars.log"
 HISTORY_FILE = TARS_DIR / "history.json"
+AUDIT_LOG = TARS_DIR / "audit.log"
 LOGS_DIR = TARS_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True, mode=0o700)
 
 # Ensure secure permissions on existing files
-for file_path in [CONFIG_FILE, LOG_FILE, HISTORY_FILE]:
+for file_path in [CONFIG_FILE, LOG_FILE, HISTORY_FILE, AUDIT_LOG]:
     if file_path.exists():
         os.chmod(file_path, 0o600)  # Only owner can read/write
+
+
+def audit_log(action: str, resource: str, namespace: str, user: str = None):
+    """Log actions for audit trail"""
+    import json
+    from datetime import datetime
+    
+    if user is None:
+        user = os.getenv('USER', 'unknown')
+    
+    entry = {
+        'timestamp': datetime.utcnow().isoformat(),
+        'user': user,
+        'action': action,
+        'resource': resource,
+        'namespace': namespace
+    }
+    
+    with open(AUDIT_LOG, 'a') as f:
+        f.write(json.dumps(entry) + '\n')
+    
+    os.chmod(AUDIT_LOG, 0o600)
 
 
 class ThresholdsConfig(BaseModel):

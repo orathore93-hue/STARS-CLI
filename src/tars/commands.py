@@ -473,7 +473,22 @@ class MonitoringCommands:
     def restart_resource(self, resource_type: str, resource_name: str, namespace: str):
         """Restart a resource"""
         try:
+            from .config import audit_log
+            from rich.prompt import Confirm
+            
+            # Get current context for confirmation
+            context = self.k8s.get_current_context()
+            
+            console.print(f"\n[bold yellow]⚠ Destructive Operation Warning[/bold yellow]")
+            console.print(f"Context: [cyan]{context['name']}[/cyan]")
+            console.print(f"Action: Restart {resource_type}/{resource_name} in {namespace}\n")
+            
+            if not Confirm.ask("Confirm restart?", default=False):
+                console.print("[yellow]Operation cancelled[/yellow]")
+                return
+            
             self.k8s.restart_resource(resource_type, resource_name, namespace)
+            audit_log('restart', f"{resource_type}/{resource_name}", namespace)
             print_success(f"Restarted {resource_type}/{resource_name}")
         except Exception as e:
             print_error(f"Failed to restart: {e}")
@@ -482,7 +497,22 @@ class MonitoringCommands:
     def scale_resource(self, resource_type: str, resource_name: str, replicas: int, namespace: str):
         """Scale a resource"""
         try:
+            from .config import audit_log
+            from rich.prompt import Confirm
+            
+            # Get current context
+            context = self.k8s.get_current_context()
+            
+            console.print(f"\n[bold yellow]⚠ Scaling Operation[/bold yellow]")
+            console.print(f"Context: [cyan]{context['name']}[/cyan]")
+            console.print(f"Action: Scale {resource_type}/{resource_name} to {replicas} replicas in {namespace}\n")
+            
+            if not Confirm.ask("Confirm scale?", default=False):
+                console.print("[yellow]Operation cancelled[/yellow]")
+                return
+            
             self.k8s.scale_resource(resource_type, resource_name, replicas, namespace)
+            audit_log('scale', f"{resource_type}/{resource_name}", namespace)
             print_success(f"Scaled {resource_type}/{resource_name} to {replicas} replicas")
         except Exception as e:
             print_error(f"Failed to scale: {e}")
