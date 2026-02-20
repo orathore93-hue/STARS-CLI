@@ -815,7 +815,7 @@ def welcome():
     console.print("[dim italic]Your companion while you Kubersnaut.[/dim italic]\n")
     
     info_panel = """[bold yellow]What I Do:[/bold yellow]
-• Monitor Kubernetes clusters (GKE/EKS/AKS) in real-time
+• Monitor Kubernetes clusters (GKE/EKS) in real-time
 • Detect issues: CrashLoops, OOM kills, pending pods, resource spikes
 • AI-powered analysis with Gemini for troubleshooting
 • On-call engineer toolkit for incident response
@@ -826,7 +826,7 @@ def welcome():
   [cyan]tars health[/cyan]     - Check cluster health
   [cyan]tars triage[/cyan]     - Quick incident overview
   [cyan]tars watch[/cyan]      - Real-time pod monitoring
-  [cyan]tars god[/cyan]        - God mode (SRE power commands)
+  [cyan]tars spike[/cyan]      - Monitor resource spikes
 """
     
     console.print(Panel(info_panel, border_style="cyan", padding=(0, 2)))
