@@ -948,6 +948,14 @@ def welcome():
   [cyan]stars triage[/cyan]    - Quick incident overview
   [cyan]stars watch[/cyan]     - Real-time pod monitoring
   [cyan]stars spike[/cyan]     - Monitor resource spikes
+
+[bold yellow]🔒 Security & Privacy:[/bold yellow]
+  • All operations require RBAC permissions
+  • Destructive actions need explicit confirmation
+  • AI features require user consent (use --no-ai to opt-out)
+  • Secrets automatically redacted before external calls
+  • Complete audit trail in ~/.stars/audit.log
+  • Privacy policy: [cyan]docs/PRIVACY.md[/cyan]
 """
     
     console.print(Panel(info_panel, border_style="cyan", padding=(0, 2)))

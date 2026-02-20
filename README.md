@@ -1,13 +1,14 @@
-# 🤖 SSTARS CLI - The SRE's Best Friend
+# 🤖 STARS CLI - The SRE's Best Friend
 
-> *"This is no time for caution."* - TARS
+> *"Site Technical Assistance & Reliability System"*
 
-**T**echnical **A**ssistance & **R**eliability **S**ystem - Your AI-powered Kubernetes companion for on-call engineers and SREs.
+**S.T.A.R.S** - Your AI-powered Kubernetes companion for on-call engineers and SREs.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Security: Hardened](https://img.shields.io/badge/security-hardened-green.svg)](SECURITY.md)
 
-## 🎯 Why TARS?
+## 🎯 Why STARS?
 
 STARS is built by SREs, for SREs. It's not just another kubectl wrapper - it's your intelligent incident response partner that:
 
@@ -16,6 +17,7 @@ STARS is built by SREs, for SREs. It's not just another kubectl wrapper - it's y
 - **Reduces MTTR** - AI-powered analysis and recommendations
 - **Prevents incidents** - Proactive monitoring and alerting
 - **Documents everything** - Auto-generates runbooks and incident reports
+- **Security first** - RBAC enforcement, input validation, audit logging
 
 ## 🚀 Quick Start
 
@@ -23,18 +25,28 @@ STARS is built by SREs, for SREs. It's not just another kubectl wrapper - it's y
 # Install
 pip install stars-cli
 
-# Setup (one-time)
-export GEMINI_API_KEY='your-key'  # Get free key at https://makersuite.google.com
-tars setup
+# Initialize
+stars init
 
 # Verify RBAC permissions (recommended)
 kubectl auth can-i --list
 
 # Start monitoring
-tars oncall
+stars oncall
 ```
 
-**Privacy Note**: AI features send anonymized cluster data to Google Gemini. See [Privacy Policy](docs/PRIVACY.md). Use `--no-ai` flag to disable.
+## 🔒 Security & Privacy
+
+**STARS is production-ready with enterprise-grade security:**
+
+- ✅ **RBAC Enforcement** - All operations check permissions first
+- ✅ **Input Validation** - K8s DNS-1123 compliant validation
+- ✅ **Explicit Consent** - AI features require user opt-in
+- ✅ **Data Redaction** - Secrets never leave your cluster
+- ✅ **Audit Logging** - Complete trail in `~/.stars/audit.log`
+- ✅ **Dry-Run Default** - Destructive operations safe by default
+
+**Privacy Note**: AI features send anonymized cluster data to Google Gemini. See [Privacy Policy](docs/PRIVACY.md). Use `--no-ai` flag to opt-out.
 
 **RBAC Note**: STARS requires specific Kubernetes RBAC permissions. See [RBAC Requirements](docs/RBAC_REQUIREMENTS.md) for details.
 
@@ -43,11 +55,14 @@ tars oncall
 ### 🚨 Incident Response
 
 ```bash
+# Start incident tracking
+stars incident start --title "API Gateway Down" --severity critical
+
 # Quick triage - see all critical issues at once
-tars triage
+stars triage
 
 # On-call dashboard - everything you need in one view
-tars oncall
+stars oncall
 
 # Deep dive into a problematic pod
 tars diagnose <pod-name>
