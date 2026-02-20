@@ -224,3 +224,100 @@ class MonitoringCommands:
             return f"{hours}h"
         else:
             return f"{minutes}m"
+    
+    def get_pod_logs(self, pod_name: str, namespace: str, tail: int):
+        """Get pod logs"""
+        try:
+            logs = self.k8s.get_pod_logs(pod_name, namespace, tail)
+            console.print(f"\n[bold]Logs for {pod_name}[/bold] (last {tail} lines)\n")
+            console.print(logs)
+        except Exception as e:
+            print_error(f"Failed to get logs: {e}")
+            raise
+    
+    def list_events(self, namespace: str, limit: int):
+        """List cluster events"""
+        try:
+            events = self.k8s.list_events(namespace)
+            table = create_table(f"Events in {namespace}", ["Time", "Type", "Reason", "Object", "Message"])
+            
+            for event in events[:limit]:
+                table.add_row(
+                    self._calculate_age(event.last_timestamp or event.event_time),
+                    event.type,
+                    event.reason,
+                    f"{event.involved_object.kind}/{event.involved_object.name}",
+                    event.message[:80]
+                )
+            
+            console.print(table)
+        except Exception as e:
+            print_error(f"Failed to list events: {e}")
+            raise
+    
+    def list_nodes(self):
+        """List cluster nodes"""
+        try:
+            nodes = self.k8s.list_nodes()
+            table = create_table("Cluster Nodes", ["Name", "Status", "Roles", "Age", "Version"])
+            
+            for node in nodes:
+                status = "Ready" if self._is_node_ready(node) else "NotReady"
+                roles = ",".join(node.metadata.labels.get("node-role.kubernetes.io", {}).keys()) or "worker"
+                
+                table.add_row(
+                    node.metadata.name,
+                    format_pod_status(status),
+                    roles,
+                    self._calculate_age(node.metadata.creation_timestamp),
+                    node.status.node_info.kubelet_version
+                )
+            
+            console.print(table)
+        except Exception as e:
+            print_error(f"Failed to list nodes: {e}")
+            raise
+    
+    def list_deployments(self, namespace: str):
+        """List deployments"""
+        try:
+            deployments = self.k8s.list_deployments(namespace)
+            table = create_table(f"Deployments in {namespace}", ["Name", "Ready", "Up-to-date", "Available", "Age"])
+            
+            for deploy in deployments:
+                table.add_row(
+                    deploy.metadata.name,
+                    f"{deploy.status.ready_replicas or 0}/{deploy.spec.replicas or 0}",
+                    str(deploy.status.updated_replicas or 0),
+                    str(deploy.status.available_replicas or 0),
+                    self._calculate_age(deploy.metadata.creation_timestamp)
+                )
+            
+            console.print(table)
+        except Exception as e:
+            print_error(f"Failed to list deployments: {e}")
+            raise
+    
+    def list_services(self, namespace: str):
+        """List services"""
+        try:
+            services = self.k8s.list_services(namespace)
+            table = create_table(f"Services in {namespace}", ["Name", "Type", "Cluster-IP", "External-IP", "Port(s)", "Age"])
+            
+            for svc in services:
+                ports = ",".join([f"{p.port}/{p.protocol}" for p in svc.spec.ports or []])
+                external_ip = ",".join(svc.status.load_balancer.ingress or []) if svc.status.load_balancer else "<none>"
+                
+                table.add_row(
+                    svc.metadata.name,
+                    svc.spec.type,
+                    svc.spec.cluster_ip or "<none>",
+                    external_ip,
+                    ports,
+                    self._calculate_age(svc.metadata.creation_timestamp)
+                )
+            
+            console.print(table)
+        except Exception as e:
+            print_error(f"Failed to list services: {e}")
+            raise

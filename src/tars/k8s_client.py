@@ -131,3 +131,40 @@ class KubernetesClient:
         except Exception as e:
             logger.warning(f"RBAC check failed: {e}")
             return False
+    
+    @retry_on_failure()
+    def get_pod_logs(self, name: str, namespace: str, tail: int = 50):
+        """Get pod logs"""
+        try:
+            return self.core_v1.read_namespaced_pod_log(name, namespace, tail_lines=tail)
+        except ApiException as e:
+            logger.error(f"Failed to get logs for {name}: {e}")
+            raise
+    
+    @retry_on_failure()
+    def list_events(self, namespace: str = "default"):
+        """List events in namespace"""
+        try:
+            events = self.core_v1.list_namespaced_event(namespace)
+            return sorted(events.items, key=lambda x: x.last_timestamp or x.event_time, reverse=True)
+        except ApiException as e:
+            logger.error(f"Failed to list events: {e}")
+            raise
+    
+    @retry_on_failure()
+    def list_deployments(self, namespace: str = "default"):
+        """List deployments"""
+        try:
+            return self.apps_v1.list_namespaced_deployment(namespace).items
+        except ApiException as e:
+            logger.error(f"Failed to list deployments: {e}")
+            raise
+    
+    @retry_on_failure()
+    def list_services(self, namespace: str = "default"):
+        """List services"""
+        try:
+            return self.core_v1.list_namespaced_service(namespace).items
+        except ApiException as e:
+            logger.error(f"Failed to list services: {e}")
+            raise

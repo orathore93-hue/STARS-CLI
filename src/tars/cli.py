@@ -115,6 +115,68 @@ def version():
     console.print(f"TARS CLI v{__version__}")
 
 
+@app.command()
+def logs(
+    pod_name: str = typer.Argument(..., help="Name of the pod"),
+    namespace: str = typer.Option("default", "--namespace", "-n", help="Kubernetes namespace"),
+    tail: int = typer.Option(50, "--tail", "-t", help="Number of lines to show")
+):
+    """Get pod logs"""
+    try:
+        cmd = MonitoringCommands()
+        cmd.get_pod_logs(pod_name, namespace, tail)
+    except Exception as e:
+        print_error(f"Command failed: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def events(
+    namespace: str = typer.Option("default", "--namespace", "-n", help="Kubernetes namespace"),
+    limit: int = typer.Option(20, "--limit", "-l", help="Number of events to show")
+):
+    """Show recent cluster events"""
+    try:
+        cmd = MonitoringCommands()
+        cmd.list_events(namespace, limit)
+    except Exception as e:
+        print_error(f"Command failed: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def nodes():
+    """List cluster nodes with status"""
+    try:
+        cmd = MonitoringCommands()
+        cmd.list_nodes()
+    except Exception as e:
+        print_error(f"Command failed: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def deployments(namespace: str = typer.Option("default", "--namespace", "-n", help="Kubernetes namespace")):
+    """List deployments"""
+    try:
+        cmd = MonitoringCommands()
+        cmd.list_deployments(namespace)
+    except Exception as e:
+        print_error(f"Command failed: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def services(namespace: str = typer.Option("default", "--namespace", "-n", help="Kubernetes namespace")):
+    """List services"""
+    try:
+        cmd = MonitoringCommands()
+        cmd.list_services(namespace)
+    except Exception as e:
+        print_error(f"Command failed: {e}")
+        raise typer.Exit(1)
+
+
 def main():
     """Main entry point"""
     try:
