@@ -103,9 +103,17 @@ def diagnose(
 
 
 @app.command()
+def init():
+    """Initialize STARS CLI - Show welcome screen and setup"""
+    welcome()
+    console.print("\n")
+    setup()
+
+
+@app.command()
 def setup():
     """Setup and validate STARS configuration"""
-    console.print("[bold]SSTARS CLI Setup[/bold]\n")
+    console.print("[bold]STARS CLI Setup[/bold]\n")
     
     # Check Gemini API key
     if config.settings.gemini_api_key:
@@ -924,7 +932,7 @@ def welcome():
     console.clear()
     console.print(STARS_BANNER)
     console.print(STARS_ROBOT)
-    console.print(f"\n[bold green]TARS:[/bold green] [italic]{random.choice(quotes)}[/italic]")
+    console.print(f"\n[bold green]STARS:[/bold green] [italic]{random.choice(quotes)}[/italic]")
     console.print("[dim italic]Your companion while you Kubersnaut.[/dim italic]\n")
     
     info_panel = """[bold yellow]What I Do:[/bold yellow]
@@ -935,15 +943,15 @@ def welcome():
 • Prevent downtime with proactive monitoring
 
 [bold yellow]Quick Start:[/bold yellow]
-  [cyan]tars setup[/cyan]      - Verify installation and configuration
-  [cyan]tars health[/cyan]     - Check cluster health
-  [cyan]tars triage[/cyan]     - Quick incident overview
-  [cyan]tars watch[/cyan]      - Real-time pod monitoring
-  [cyan]tars spike[/cyan]      - Monitor resource spikes
+  [cyan]stars init[/cyan]      - Initialize and setup STARS
+  [cyan]stars health[/cyan]    - Check cluster health
+  [cyan]stars triage[/cyan]    - Quick incident overview
+  [cyan]stars watch[/cyan]     - Real-time pod monitoring
+  [cyan]stars spike[/cyan]     - Monitor resource spikes
 """
     
     console.print(Panel(info_panel, border_style="cyan", padding=(0, 2)))
-    console.print("\n[dim]Created by Omer Rathore | Type 'tars --help' for all commands[/dim]\n")
+    console.print("\n[dim]Created by Omer Rathore | Type 'stars --help' for all commands[/dim]\n")
 
 
 @app.command()
@@ -1321,7 +1329,7 @@ def cardinality_labels(
 def main():
     """Main entry point"""
     try:
-        # Show welcome screen when no arguments (just 'tars')
+        # Show welcome screen when no arguments (just 'stars')
         if len(sys.argv) == 1:
             welcome()
             return
