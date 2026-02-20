@@ -1,5 +1,5 @@
 ═══════════════════════════════════════════════════════════
-        TARS ON-CALL DASHBOARD - GOD MODE ACTIVATED        
+        STARS ON-CALL DASHBOARD - GOD MODE ACTIVATED        
 ═══════════════════════════════════════════════════════════
 
 Monitoring all namespaces (10 total)

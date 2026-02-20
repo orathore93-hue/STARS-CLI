@@ -1,4 +1,4 @@
-# 🤖 TARS CLI - The SRE's Best Friend
+# 🤖 SSTARS CLI - The SRE's Best Friend
 
 > *"This is no time for caution."* - TARS
 
@@ -9,7 +9,7 @@
 
 ## 🎯 Why TARS?
 
-TARS is built by SREs, for SREs. It's not just another kubectl wrapper - it's your intelligent incident response partner that:
+STARS is built by SREs, for SREs. It's not just another kubectl wrapper - it's your intelligent incident response partner that:
 
 - **Thinks like an SRE** - Prioritizes what matters during incidents
 - **Saves time** - Automates repetitive diagnostic tasks
@@ -21,7 +21,7 @@ TARS is built by SREs, for SREs. It's not just another kubectl wrapper - it's yo
 
 ```bash
 # Install
-pip install tars-cli
+pip install stars-cli
 
 # Setup (one-time)
 export GEMINI_API_KEY='your-key'  # Get free key at https://makersuite.google.com
@@ -36,7 +36,7 @@ tars oncall
 
 **Privacy Note**: AI features send anonymized cluster data to Google Gemini. See [Privacy Policy](docs/PRIVACY.md). Use `--no-ai` flag to disable.
 
-**RBAC Note**: TARS requires specific Kubernetes RBAC permissions. See [RBAC Requirements](docs/RBAC_REQUIREMENTS.md) for details.
+**RBAC Note**: STARS requires specific Kubernetes RBAC permissions. See [RBAC Requirements](docs/RBAC_REQUIREMENTS.md) for details.
 
 ## 💪 Core Features for SREs
 
@@ -235,7 +235,7 @@ tars prom-query 'container_memory_usage_bytes{namespace="production"}'
 ### Install
 
 ```bash
-pip install tars-cli
+pip install stars-cli
 ```
 
 ### Configure
@@ -345,7 +345,7 @@ tars --install-completion zsh
 | `tars context` | Switch contexts |
 | `tars diff <c1> <c2>` | Compare clusters |
 
-## 🎨 Features That Make TARS Unique
+## 🎨 Features That Make STARS Unique
 
 ### 1. AI-Powered Analysis
 - Uses Google Gemini for intelligent insights
@@ -379,7 +379,7 @@ tars --install-completion zsh
 
 ## 🔒 Security Best Practices
 
-TARS follows security best practices:
+STARS follows security best practices:
 
 - Uses kubectl config (no separate credentials)
 - Read-only by default (except explicit operations)
@@ -389,12 +389,12 @@ TARS follows security best practices:
 
 ## 🤝 Contributing
 
-TARS is open source and welcomes contributions!
+STARS is open source and welcomes contributions!
 
 ```bash
 # Clone repo
-git clone https://github.com/orathore93-hue/tars-cli.git
-cd tars-cli
+git clone https://github.com/orathore93-hue/stars-cli.git
+cd stars-cli
 
 # Install in development mode
 pip install -e .
@@ -414,13 +414,13 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/orathore93-hue/tars-cli/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/orathore93-hue/tars-cli/discussions)
+- **Issues**: [GitHub Issues](https://github.com/orathore93-hue/stars-cli/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/orathore93-hue/stars-cli/discussions)
 - **Email**: orathore93@gmail.com
 
 ## 🌟 Star History
 
-If TARS helps you during incidents, consider giving it a star! ⭐
+If STARS helps you during incidents, consider giving it a star! ⭐
 
 ---
 

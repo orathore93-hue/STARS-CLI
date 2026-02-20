@@ -1,5 +1,5 @@
 """
-TARS CLI - Unit Tests for Configuration Management
+SSTARS CLI - Unit Tests for Configuration Management
 """
 import pytest
 import yaml
@@ -11,7 +11,7 @@ class TestConfigManagement:
     
     def test_default_config_structure(self):
         """Test default configuration has required keys"""
-        from tars import DEFAULT_CONFIG
+        from stars import DEFAULT_CONFIG
         
         assert "default" in DEFAULT_CONFIG
         assert "thresholds" in DEFAULT_CONFIG["default"]
@@ -21,7 +21,7 @@ class TestConfigManagement:
     
     def test_config_values(self):
         """Test default configuration values"""
-        from tars import DEFAULT_CONFIG
+        from stars import DEFAULT_CONFIG
         
         assert DEFAULT_CONFIG["default"]["thresholds"]["cpu"] == 80
         assert DEFAULT_CONFIG["default"]["thresholds"]["memory"] == 85
@@ -33,7 +33,7 @@ class TestCacheDecorator:
     
     def test_cache_hit(self):
         """Test cache returns cached value"""
-        from tars import cached_api_call
+        from stars import cached_api_call
         
         call_count = 0
         
@@ -56,7 +56,7 @@ class TestCacheDecorator:
     def test_cache_expiry(self):
         """Test cache expires after TTL"""
         import time
-        from tars import cached_api_call, _cache, _cache_ttl
+        from stars import cached_api_call, _cache, _cache_ttl
         
         # Clear cache
         _cache.clear()

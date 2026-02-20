@@ -1,4 +1,4 @@
-# 🚨 TARS Quick Reference Card for On-Call Engineers
+# 🚨 STARS Quick Reference Card for On-Call Engineers
 
 ## 🔥 Emergency Response (First 60 Seconds)
 
@@ -97,7 +97,7 @@ tars events
 
 - `Ctrl+C` - Stop any running command
 - `tars god` - Show all power commands
-- `tars quote` - Get TARS motivation
+- `tars quote` - Get STARS motivation
 
 ## 📞 Escalation Checklist
 

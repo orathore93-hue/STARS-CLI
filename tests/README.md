@@ -1,4 +1,4 @@
-# TARS CLI Test Suite
+# SSTARS CLI Test Suite
 
 ## Running Tests
 

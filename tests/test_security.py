@@ -1,6 +1,6 @@
 """Unit tests for security module"""
 import pytest
-from tars.security import (
+from stars.security import (
     validate_k8s_name,
     validate_namespace,
     validate_threshold,

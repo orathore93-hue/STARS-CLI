@@ -1,7 +1,7 @@
 # Namespace Scanning Feature
 
 ## Overview
-TARS CLI now scans **all namespaces** by default for comprehensive cluster monitoring. This enables SREs and on-call engineers to detect issues across the entire cluster without manually specifying each namespace.
+SSTARS CLI now scans **all namespaces** by default for comprehensive cluster monitoring. This enables SREs and on-call engineers to detect issues across the entire cluster without manually specifying each namespace.
 
 ## Changes Made
 

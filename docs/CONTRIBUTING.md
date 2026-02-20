@@ -1,14 +1,14 @@
-# Contributing to T.A.R.S
+# Contributing to S.T.A.R.S
 
-Thank you for considering contributing to T.A.R.S! 🤖
+Thank you for considering contributing to S.T.A.R.S! 🤖
 
 ## How to Contribute
 
 1. **Fork the repository**
 2. **Clone your fork**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/tars-cli.git
-   cd tars-cli
+   git clone https://github.com/YOUR_USERNAME/stars-cli.git
+   cd stars-cli
    ```
 
 3. **Create a virtual environment**
@@ -70,4 +70,4 @@ Open an issue or reach out to the maintainer:
 
 ---
 
-*"Monitoring your cluster with intelligence and wit."* - T.A.R.S
+*"Monitoring your cluster with intelligence and wit."* - S.T.A.R.S

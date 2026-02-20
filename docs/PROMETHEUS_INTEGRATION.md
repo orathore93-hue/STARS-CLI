@@ -2,7 +2,7 @@
 
 ## Overview
 
-TARS CLI now includes production-ready Prometheus integration to query metrics, monitor alerts, and display dashboards directly from your terminal.
+SSTARS CLI now includes production-ready Prometheus integration to query metrics, monitor alerts, and display dashboards directly from your terminal.
 
 ## Setup
 
@@ -184,7 +184,7 @@ tars prom-query 'rate(http_requests_total{status="500"}[5m])'
 
 ## Integration with Existing Commands
 
-Prometheus commands work seamlessly with existing TARS commands:
+Prometheus commands work seamlessly with existing STARS commands:
 
 ```bash
 # Traditional workflow
@@ -316,7 +316,7 @@ Potential additions:
 ## Support
 
 For issues or questions:
-- GitHub: https://github.com/orathore93-hue/tars-cli
+- GitHub: https://github.com/orathore93-hue/stars-cli
 - Email: orathore93@gmail.com
 
 ---

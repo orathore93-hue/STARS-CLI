@@ -270,7 +270,7 @@ class MonitoringCommands:
             
             logs = self.k8s.get_pod_logs(pod_name, namespace, tail)
             
-            # Save logs securely in ~/.tars/logs/
+            # Save logs securely in ~/.stars/logs/
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             log_file = LOGS_DIR / f"{pod_name}_{timestamp}.log"
             
@@ -1192,9 +1192,9 @@ class MonitoringCommands:
         console.print("""[bold red]
     ╔═══════════════════════════════════════════════════════════════╗
     ║                                                               ║
-    ║              ⚡ TARS GOD MODE ACTIVATED ⚡                    ║
+    ║              ⚡ STARS GOD MODE ACTIVATED ⚡                    ║
     ║                                                               ║
-    ║         "This is no time for caution." - TARS                 ║
+    ║         "This is no time for caution." - STARS                 ║
     ║                                                               ║
     ╚═══════════════════════════════════════════════════════════════╝
     [/bold red]
@@ -1242,7 +1242,7 @@ class MonitoringCommands:
     def show_oncall(self):
         """Show on-call"""
         console.print("[bold]On-Call Information[/bold]")
-        console.print("[dim]Configure in ~/.tars/oncall.yaml[/dim]")
+        console.print("[dim]Configure in ~/.stars/oncall.yaml[/dim]")
     
     def profile_pod(self, pod_name: str, duration: int, namespace: str):
         """Profile pod"""

@@ -1,7 +1,7 @@
 """Unit tests for configuration module"""
 import pytest
 from pathlib import Path
-from tars.config import Config, DEFAULT_CONFIG
+from stars.config import Config, DEFAULT_CONFIG
 
 
 class TestConfig:

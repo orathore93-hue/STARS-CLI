@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TARS CLI - Phase 2 Enhanced Features Tests
+SSTARS CLI - Phase 2 Enhanced Features Tests
 Tests for configuration, multi-cluster, alerting, history, and export
 """
 
@@ -44,7 +44,7 @@ def test_config_file_structure():
     print("\n🧪 Test 2: Configuration File Structure")
     
     # Check config module exists
-    code, stdout, stderr = run_command("grep -n 'class.*Config\\|CONFIG_FILE\\|TARS_DIR' src/tars/config.py")
+    code, stdout, stderr = run_command("grep -n 'class.*Config\\|CONFIG_FILE\\|STARS_DIR' src/tars/config.py")
     
     if code == 0:
         print("✅ PASS: Config structure complete")
@@ -197,7 +197,7 @@ def test_help_output():
 def main():
     """Run all tests"""
     print("=" * 70)
-    print("TARS CLI - Phase 2 Enhanced Features Test Suite")
+    print("SSTARS CLI - Phase 2 Enhanced Features Test Suite")
     print("=" * 70)
     
     tests = [
@@ -239,7 +239,7 @@ def main():
         print("✅ Webhook Alerting: COMPLETE")
         print("✅ Command History: COMPLETE")
         print("✅ Export Functionality: COMPLETE")
-        print("\n🚀 TARS CLI Phase 2 is production-ready!")
+        print("\n🚀 SSTARS CLI Phase 2 is production-ready!")
         return 0
     else:
         print(f"\n⚠️  {total - passed} test(s) failed. Review output above.")

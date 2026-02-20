@@ -1,4 +1,4 @@
-"""Configuration management for TARS CLI"""
+"""Configuration management for SSTARS CLI"""
 import os
 from pathlib import Path
 from typing import Optional
@@ -7,15 +7,15 @@ from pydantic_settings import BaseSettings
 import yaml
 
 # Directories with secure permissions
-TARS_DIR = Path.home() / ".tars"
-TARS_DIR.mkdir(exist_ok=True, mode=0o700)  # Only owner can read/write/execute
+STARS_DIR = Path.home() / ".stars"
+STARS_DIR.mkdir(exist_ok=True, mode=0o700)  # Only owner can read/write/execute
 
-CONFIG_FILE = TARS_DIR / "config.yaml"
-LOG_FILE = TARS_DIR / "tars.log"
-HISTORY_FILE = TARS_DIR / "history.json"
-AUDIT_LOG = TARS_DIR / "audit.log"
-CONSENT_FILE = TARS_DIR / "ai_consent"
-LOGS_DIR = TARS_DIR / "logs"
+CONFIG_FILE = STARS_DIR / "config.yaml"
+LOG_FILE = STARS_DIR / "tars.log"
+HISTORY_FILE = STARS_DIR / "history.json"
+AUDIT_LOG = STARS_DIR / "audit.log"
+CONSENT_FILE = STARS_DIR / "ai_consent"
+LOGS_DIR = STARS_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True, mode=0o700)
 
 # Ensure secure permissions on existing files
@@ -73,14 +73,14 @@ class ThresholdsConfig(BaseModel):
 
 
 class TarsSettings(BaseSettings):
-    """TARS CLI settings from environment and config file"""
+    """SSTARS CLI settings from environment and config file"""
     
     # API Keys
     gemini_api_key: Optional[str] = Field(default=None, env='GEMINI_API_KEY')
     
     # Kubernetes
-    default_namespace: Optional[str] = Field(default=None, env='TARS_NAMESPACE')
-    default_cluster: Optional[str] = Field(default=None, env='TARS_CLUSTER')
+    default_namespace: Optional[str] = Field(default=None, env='STARS_NAMESPACE')
+    default_cluster: Optional[str] = Field(default=None, env='STARS_CLUSTER')
     
     # Prometheus
     prometheus_url: Optional[str] = Field(default=None, env='PROMETHEUS_URL')

@@ -3,8 +3,8 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tars-cli"
-version = "4.2.4"
+name = "stars-cli"
+version = "4.3.0"
 description = "AI-powered Kubernetes cluster monitoring and troubleshooting tool for SREs"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -40,13 +40,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/orathore93-hue/tars-cli"
-Repository = "https://github.com/orathore93-hue/tars-cli"
-Issues = "https://github.com/orathore93-hue/tars-cli/issues"
+Homepage = "https://github.com/orathore93-hue/stars-cli"
+Repository = "https://github.com/orathore93-hue/stars-cli"
+Issues = "https://github.com/orathore93-hue/stars-cli/issues"
 
 [project.scripts]
-tars = "tars.cli:main"
+stars = "stars.cli:main"
 
 [tool.setuptools]
-packages = ["tars"]
+packages = ["stars"]
 package-dir = {"" = "src"}

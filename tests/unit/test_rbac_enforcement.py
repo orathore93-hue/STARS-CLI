@@ -3,7 +3,7 @@ Test RBAC enforcement for destructive operations
 """
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from tars.k8s_client import K8sClient
+from stars.k8s_client import K8sClient
 
 
 class TestRBACEnforcement:

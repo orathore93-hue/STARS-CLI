@@ -1,4 +1,4 @@
-# TARS CLI Security Audit Report
+# SSTARS CLI Security Audit Report
 **Date**: 2026-02-20  
 **Version**: 4.2.4  
 **Auditor**: Automated Security Review
@@ -21,7 +21,7 @@
 - Test coverage for redaction functionality
 
 ### ✅ PASSED: Secure Storage
-- Local state stored in ~/.tars/ with chmod 700
+- Local state stored in ~/.stars/ with chmod 700
 - Audit logs with chmod 600
 - No sensitive data in logs
 - Secure file permissions enforced
@@ -80,7 +80,7 @@
 ### 3. Audit Log Rotation
 **Status**: Not Implemented  
 **Risk**: Low  
-**Recommendation**: Implement log rotation for ~/.tars/audit.log  
+**Recommendation**: Implement log rotation for ~/.stars/audit.log  
 **Priority**: Low
 
 ## Security Features Implemented
@@ -97,9 +97,9 @@
 
 ### 2. Secure Permissions
 ```bash
-~/.tars/          # chmod 700
-~/.tars/audit.log # chmod 600
-~/.tars/logs/     # chmod 700
+~/.stars/          # chmod 700
+~/.stars/audit.log # chmod 600
+~/.stars/logs/     # chmod 700
 ```
 
 ### 3. Audit Logging
@@ -148,11 +148,11 @@
 1. **Environment Setup**
    ```bash
    export GEMINI_API_KEY='your-key-here'
-   chmod 700 ~/.tars
+   chmod 700 ~/.stars
    ```
 
 2. **Monitoring**
-   - Review audit logs regularly: `~/.tars/audit.log`
+   - Review audit logs regularly: `~/.stars/audit.log`
    - Monitor for unusual activity
    - Track API usage
 
@@ -170,7 +170,7 @@
 
 ## Conclusion
 
-**TARS CLI v4.2.4 is PRODUCTION READY** from a security perspective.
+**SSTARS CLI v4.2.4 is PRODUCTION READY** from a security perspective.
 
 The application implements enterprise-grade security controls including:
 - Secure credential management

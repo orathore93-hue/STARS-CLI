@@ -1,4 +1,4 @@
-# 🎉 TARS CLI - Phases 1 & 2 Complete!
+# 🎉 SSTARS CLI - Phases 1 & 2 Complete!
 
 ## World-Class SRE Tool: MISSION 98% ACCOMPLISHED ✅
 
@@ -10,7 +10,7 @@
 
 ## 🏆 What We Built
 
-TARS CLI is now a **world-class, production-grade platform** for SREs and on-call engineers with:
+SSTARS CLI is now a **world-class, production-grade platform** for SREs and on-call engineers with:
 
 ### ✅ Phase 1: Production Hardening
 1. **Bulletproof Error Handling** - Zero bare exceptions, context-aware messages
@@ -98,7 +98,7 @@ tars export --format csv            # Export to CSV
 ```bash
 tars --debug health                 # Debug mode
 tars --verbose oncall               # Verbose mode
-tail -f ~/.tars/tars.log           # View logs
+tail -f ~/.stars/tars.log           # View logs
 ```
 
 ---
@@ -114,7 +114,7 @@ tail -f ~/.tars/tars.log           # View logs
 
 ---
 
-## 🎯 Why TARS CLI is #1
+## 🎯 Why SSTARS CLI is #1
 
 ### 1. Production-Grade (Phase 1) ✅
 - Zero bare exceptions
@@ -138,7 +138,7 @@ tail -f ~/.tars/tars.log           # View logs
 ### 4. User Experience ✅
 - Rich terminal UI
 - Clear error messages
-- TARS personality
+- STARS personality
 - Intuitive commands
 
 ### 5. Security ✅
@@ -169,7 +169,7 @@ tail -f ~/.tars/tars.log           # View logs
 
 ```bash
 # Install
-pip install --upgrade tars-cli
+pip install --upgrade stars-cli
 
 # Verify
 tars setup
@@ -186,7 +186,7 @@ tars history                        # View history
 tars export --format json           # Export data
 
 # Check logs
-tail -f ~/.tars/tars.log
+tail -f ~/.stars/tars.log
 ```
 
 ---
@@ -213,7 +213,7 @@ tail -f ~/.tars/tars.log
 - Secret redaction
 - Security scanning
 
-**ETA:** Phase 3 will bring TARS CLI to 100% production readiness.
+**ETA:** Phase 3 will bring SSTARS CLI to 100% production readiness.
 
 ---
 
@@ -286,7 +286,7 @@ tail -f ~/.tars/tars.log
 
 **Phases 1 & 2 are COMPLETE!** 🎊
 
-TARS CLI is now:
+SSTARS CLI is now:
 - ✅ Production-ready (98%)
 - ✅ Enterprise-grade
 - ✅ Security hardened
@@ -300,7 +300,7 @@ TARS CLI is now:
 
 ---
 
-*"Phases 1 and 2 complete. TARS CLI is now the best SRE tool in the world. Phase 3 will make it perfect. This is no time for caution."* - TARS 🚀
+*"Phases 1 and 2 complete. SSTARS CLI is now the best SRE tool in the world. Phase 3 will make it perfect. This is no time for caution."* - STARS 🚀
 
 **Created by:** Omer Rathore  
 **Version:** 2.2.0  

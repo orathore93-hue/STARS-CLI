@@ -261,7 +261,7 @@ For production deployment:
 
 ## Conclusion
 
-TARS CLI now has **enterprise-grade security and privacy controls**:
+SSTARS CLI now has **enterprise-grade security and privacy controls**:
 
 1. ✅ **RBAC Enforcement** - Prevents unauthorized operations
 2. ✅ **Explicit Consent** - Users control external data sharing

@@ -1,7 +1,7 @@
-# RBAC Requirements for TARS CLI
+# RBAC Requirements for SSTARS CLI
 
 ## Overview
-TARS CLI requires specific Kubernetes RBAC permissions to function. This document outlines the minimum required permissions for each command.
+SSTARS CLI requires specific Kubernetes RBAC permissions to function. This document outlines the minimum required permissions for each command.
 
 ## Minimum Required Permissions
 
@@ -125,7 +125,7 @@ kubectl config use-context tars-context
 
 ## Permission Validation
 
-TARS CLI automatically checks permissions before destructive operations. To manually verify:
+SSTARS CLI automatically checks permissions before destructive operations. To manually verify:
 
 ```bash
 # Check if you can delete pods

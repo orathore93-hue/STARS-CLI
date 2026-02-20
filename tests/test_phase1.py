@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TARS CLI - Phase 1 Production Hardening Tests
+SSTARS CLI - Phase 1 Production Hardening Tests
 Tests for error handling, retry logic, validation, and logging
 """
 
@@ -114,12 +114,12 @@ def test_help_command():
 def test_log_directory():
     """Test 8: Log directory creation"""
     print("\n🧪 Test 8: Log Directory")
-    tars_dir = Path.home() / ".tars"
+    tars_dir = Path.home() / ".stars"
     if tars_dir.exists():
-        print(f"✅ PASS: TARS directory exists: {tars_dir}")
+        print(f"✅ PASS: STARS directory exists: {tars_dir}")
         return True
     else:
-        print(f"⚠️  INFO: TARS directory will be created on first run: {tars_dir}")
+        print(f"⚠️  INFO: STARS directory will be created on first run: {tars_dir}")
         return True  # Not a failure, will be created on first run
 
 def test_api_exception_handling():
@@ -147,7 +147,7 @@ def test_safe_api_wrapper():
 def main():
     """Run all tests"""
     print("=" * 70)
-    print("TARS CLI - Phase 1 Production Hardening Test Suite")
+    print("SSTARS CLI - Phase 1 Production Hardening Test Suite")
     print("=" * 70)
     
     tests = [
@@ -189,7 +189,7 @@ def main():
         print("✅ Retry Logic: IMPLEMENTED")
         print("✅ Input Validation: SECURE")
         print("✅ Logging: COMPREHENSIVE")
-        print("\n🚀 TARS CLI is production-ready!")
+        print("\n🚀 SSTARS CLI is production-ready!")
         return 0
     else:
         print(f"\n⚠️  {total - passed} test(s) failed. Review output above.")

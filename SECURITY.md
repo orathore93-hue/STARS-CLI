@@ -1,4 +1,4 @@
-# TARS CLI - Security Guide for Production Use
+# SSTARS CLI - Security Guide for Production Use
 
 ## ✅ Security Features
 
@@ -15,13 +15,13 @@
 - Applied before sending data to AI services
 
 ### 3. Secure Local State
-- All data stored in `~/.tars/` with chmod 700
+- All data stored in `~/.stars/` with chmod 700
 - Log files with chmod 600 (owner read/write only)
 - No usage of `/tmp/` or world-readable directories
 - Audit log for all destructive operations
 
 ### 4. Audit Trail
-- All destructive operations logged to `~/.tars/audit.log`
+- All destructive operations logged to `~/.stars/audit.log`
 - Includes timestamp, user, action, resource, namespace
 - Secure permissions (chmod 600)
 
@@ -75,7 +75,7 @@ export GEMINI_API_KEY=$(aws secretsmanager get-secret-value --secret-id tars-api
 **Risk:** Need to track who did what
 
 **Mitigation:**
-- Check audit log: `cat ~/.tars/audit.log`
+- Check audit log: `cat ~/.stars/audit.log`
 - Integrate with your SIEM/logging system
 - Regular audit log reviews
 
@@ -114,10 +114,10 @@ tars analyze
 ### 4. Audit Log Monitoring
 ```bash
 # Monitor audit log
-tail -f ~/.tars/audit.log
+tail -f ~/.stars/audit.log
 
 # Export to central logging
-cat ~/.tars/audit.log | logger -t tars-cli
+cat ~/.stars/audit.log | logger -t stars-cli
 ```
 
 ### 5. Secure API Keys
@@ -144,14 +144,14 @@ Before using in production:
 - [ ] Train team on confirmation prompts
 - [ ] Set up alerting for destructive operations
 - [ ] Regular security audits of audit.log
-- [ ] Keep TARS CLI updated
+- [ ] Keep SSTARS CLI updated
 - [ ] Review data sent to AI services
 
 ## 📋 Incident Response
 
 If unauthorized action detected:
 
-1. Check audit log: `cat ~/.tars/audit.log`
+1. Check audit log: `cat ~/.stars/audit.log`
 2. Identify user and action
 3. Review Kubernetes audit logs
 4. Revoke compromised credentials
@@ -160,7 +160,7 @@ If unauthorized action detected:
 
 ## 🔐 Compliance
 
-TARS CLI helps with:
+SSTARS CLI helps with:
 - **SOC 2**: Audit logging, access controls
 - **HIPAA**: Data encryption at rest (chmod 600)
 - **PCI DSS**: Sensitive data redaction
@@ -170,16 +170,16 @@ TARS CLI helps with:
 
 For security issues:
 - Email: orathore93@gmail.com
-- GitHub: https://github.com/orathore93-hue/tars-cli/security
+- GitHub: https://github.com/orathore93-hue/stars-cli/security
 
 ## 🔄 Updates
 
-Keep TARS CLI updated for security patches:
+Keep SSTARS CLI updated for security patches:
 ```bash
-pip install --upgrade tars-cli
+pip install --upgrade stars-cli
 tars version
 ```
 
 ---
 
-**Remember:** Security is a shared responsibility. TARS CLI provides tools, but you must use them wisely.
+**Remember:** Security is a shared responsibility. SSTARS CLI provides tools, but you must use them wisely.

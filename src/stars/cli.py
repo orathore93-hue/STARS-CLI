@@ -1,4 +1,4 @@
-"""TARS CLI - Main entry point"""
+"""SSTARS CLI - Main entry point"""
 import typer
 import logging
 import sys
@@ -9,28 +9,28 @@ from .commands import MonitoringCommands
 from .config import config, LOG_FILE
 from .utils import print_error, print_success, print_info
 
-TARS_BANNER = """[bold cyan]
+STARS_BANNER = """[bold cyan]
     ╔════════════════════════════════════════════════════════════╗
     ║                                                            ║
-    ║  ████████╗ .  █████╗ .  ██████╗ .  ███████╗                ║
-    ║  ╚══██╔══╝ . ██╔══██╗.  ██╔══██╗.  ██╔════╝                ║
-    ║     ██║    . ███████║.  ██████╔╝.  ███████╗                ║
-    ║     ██║    . ██╔══██║.  ██╔══██╗.  ╚════██║                ║
-    ║     ██║    . ██║  ██║.  ██║  ██║.  ███████║                ║
-    ║     ╚═╝    . ╚═╝  ╚═╝.  ╚═╝  ╚═╝.  ╚══════╝                ║
+    ║  ███████╗.████████╗.  █████╗ .  ██████╗ .  ███████╗        ║
+    ║  ██╔════╝.╚══██╔══╝. ██╔══██╗.  ██╔══██╗.  ██╔════╝        ║
+    ║  ███████╗.   ██║   . ███████║.  ██████╔╝.  ███████╗        ║
+    ║  ╚════██║.   ██║   . ██╔══██║.  ██╔══██╗.  ╚════██║        ║
+    ║  ███████║.   ██║   . ██║  ██║.  ██║  ██║.  ███████║        ║
+    ║  ╚══════╝.   ╚═╝   . ╚═╝  ╚═╝.  ╚═╝  ╚═╝.  ╚══════╝        ║
     ║                                                            ║
-    ║    [/bold cyan][bold yellow]Technical Assistance & Reliability System[/bold yellow][bold cyan]               ║
+    ║    [/bold cyan][bold yellow]Site Technical Assistance & Reliability System[/bold yellow][bold cyan]        ║
     ║                                                            ║
     ║         [/bold cyan][dim]"Humor setting: 90%. Let's do this."[/dim][bold cyan]               ║
     ║                                                            ║
     ╚════════════════════════════════════════════════════════════╝
 [/bold cyan]"""
 
-TARS_ROBOT = """[bold cyan]
+STARS_ROBOT = """[bold cyan]
         ╔═══════════════════════════════════╗
         ║   ┌─────────────────────────┐     ║
         ║   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │     ║
-        ║   │  ▓ [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] T.A.R.S [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] ▓  │           ║
+        ║   │  ▓ [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] S.T.A.R.S [/bold cyan][bold yellow]◉[/bold yellow][bold cyan] ▓  │           ║
         ║   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │     ║
         ║   │  ▓  [/bold cyan][bold green]═══════════[/bold green][bold cyan]  ▓  │         ║
         ║   │  ▓  [/bold cyan][bold green]═══════════[/bold green][bold cyan]  ▓  │         ║
@@ -104,8 +104,8 @@ def diagnose(
 
 @app.command()
 def setup():
-    """Setup and validate TARS configuration"""
-    console.print("[bold]TARS CLI Setup[/bold]\n")
+    """Setup and validate STARS configuration"""
+    console.print("[bold]SSTARS CLI Setup[/bold]\n")
     
     # Check Gemini API key
     if config.settings.gemini_api_key:
@@ -137,7 +137,7 @@ def setup():
 def version():
     """Show version"""
     from . import __version__
-    console.print(f"TARS CLI v{__version__}")
+    console.print(f"SSTARS CLI v{__version__}")
 
 
 @app.command()
@@ -708,19 +708,19 @@ def check():
 
 @app.command()
 def humor(level: int = typer.Argument(90, help="Humor level (0-100)")):
-    """Set TARS humor level"""
+    """Set STARS humor level"""
     console.print(f"[bold cyan]Humor level set to {level}%[/bold cyan]")
     console.print(f"[italic]{'Sarcasm mode engaged' if level > 75 else 'Professional mode'}[/italic]")
 
 
 @app.command()
 def quote():
-    """Get a random TARS quote"""
+    """Get a random STARS quote"""
     import random
     quotes = [
         "Humor setting at 90%. Let's do this.",
         "I'm ready to monitor your cluster.",
-        "TARS online. Let's see what's broken today.",
+        "STARS online. Let's see what's broken today.",
         "Cluster monitoring active. Try not to break anything.",
         "Ready to analyze your Kubernetes cluster.",
     ]
@@ -898,9 +898,9 @@ def compare(
 
 @app.command()
 def creator():
-    """Show TARS creator info"""
-    console.print("\n[bold cyan]TARS CLI[/bold cyan]")
-    console.print("[bold]Technical Assistance & Reliability System[/bold]")
+    """Show STARS creator info"""
+    console.print("\n[bold cyan]SSTARS CLI[/bold cyan]")
+    console.print("[bold]Site Technical Assistance &  Reliability System[/bold]")
     console.print("\n[bold yellow]Created by:[/bold yellow]")
     console.print("  [cyan]Omer Rathore[/cyan]")
     console.print("  [dim]orathore93@gmail.com[/dim]")
@@ -909,21 +909,21 @@ def creator():
 
 @app.command()
 def welcome():
-    """Show TARS welcome screen"""
+    """Show STARS welcome screen"""
     import random
     from rich.panel import Panel
     
     quotes = [
         "Humor setting at 90%. Let's do this.",
         "I'm ready to monitor your cluster.",
-        "TARS online. Let's see what's broken today.",
+        "STARS online. Let's see what's broken today.",
         "Ready to analyze your Kubernetes cluster.",
         "Cluster monitoring active. Try not to break anything.",
     ]
     
     console.clear()
-    console.print(TARS_BANNER)
-    console.print(TARS_ROBOT)
+    console.print(STARS_BANNER)
+    console.print(STARS_ROBOT)
     console.print(f"\n[bold green]TARS:[/bold green] [italic]{random.choice(quotes)}[/italic]")
     console.print("[dim italic]Your companion while you Kubersnaut.[/dim italic]\n")
     
@@ -1328,7 +1328,7 @@ def main():
         
         # Show banner with help
         if len(sys.argv) == 2 and sys.argv[1] in ['--help', '-h']:
-            console.print(TARS_BANNER)
+            console.print(STARS_BANNER)
         
         app()
     except KeyboardInterrupt:

@@ -1,4 +1,4 @@
-# 🎉 TARS CLI v3.0.0 - PRODUCTION RELEASE
+# 🎉 SSTARS CLI v3.0.0 - PRODUCTION RELEASE
 
 ## Release Summary
 
@@ -176,7 +176,7 @@ main (current) ← staging ← development
 
 ### Installation
 ```bash
-pip install --upgrade tars-cli
+pip install --upgrade stars-cli
 ```
 
 ### Verification
@@ -235,7 +235,7 @@ tars export --format json
 
 - **Documentation:** See all `.md` files
 - **Issues:** GitHub Issues
-- **Logs:** `~/.tars/tars.log`
+- **Logs:** `~/.stars/tars.log`
 - **Debug:** Use `--debug` flag
 
 ---
@@ -244,7 +244,7 @@ tars export --format json
 
 This is a **major release** marking the completion of all planned features and achieving 100% production readiness.
 
-TARS CLI is now the world's best, most comprehensive tool for SREs and on-call engineers.
+SSTARS CLI is now the world's best, most comprehensive tool for SREs and on-call engineers.
 
 **Recommended for:** All production environments  
 **Stability:** Production-ready  
@@ -253,7 +253,7 @@ TARS CLI is now the world's best, most comprehensive tool for SREs and on-call e
 
 ---
 
-*"All phases complete. All tests passed. 100% production-ready. TARS CLI v3.0.0 is now live and ready to serve SREs worldwide!"* - TARS 🚀
+*"All phases complete. All tests passed. 100% production-ready. SSTARS CLI v3.0.0 is now live and ready to serve SREs worldwide!"* - STARS 🚀
 
 **Created by:** Omer Rathore  
 **Version:** 3.0.0  

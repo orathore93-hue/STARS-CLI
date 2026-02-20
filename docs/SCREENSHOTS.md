@@ -1,4 +1,4 @@
-# T.A.R.S Screenshots & Demo
+# S.T.A.R.S Screenshots & Demo
 
 ## Welcome Screen
 ```
@@ -9,7 +9,7 @@
    ██║   ██  ██║  ██║    ██║  ██║    ███████║
    ╚═╝   ╚═  ╚═╝  ╚═╝    ╚═╝  ╚═╝    ╚══════╝
 
-Technical Assistance & Reliability System
+Site Technical Assistance &  Reliability System
 
 TARS: Humor setting at 90%. Cluster monitoring initiated.
 ```
@@ -21,11 +21,11 @@ Shows comprehensive cluster health with color-coded status indicators.
 Real-time pod status updates with automatic issue detection.
 
 ## AI Analysis
-Gemini-powered troubleshooting with TARS personality responses.
+Gemini-powered troubleshooting with STARS personality responses.
 
 ## Spike Detection
 Instant alerts for CPU and memory spikes with historical tracking.
 
 ---
 
-*Add your own screenshots here after using T.A.R.S!*
+*Add your own screenshots here after using S.T.A.R.S!*

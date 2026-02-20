@@ -1,5 +1,5 @@
 """
-TARS CLI - Unit Tests for Validation Functions
+SSTARS CLI - Unit Tests for Validation Functions
 """
 import pytest
 from pathlib import Path
@@ -17,7 +17,7 @@ class MockConsole:
 import tars
 tars.console = MockConsole()
 
-from tars import validate_k8s_name, validate_namespace, validate_threshold, sanitize_command
+from stars import validate_k8s_name, validate_namespace, validate_threshold, sanitize_command
 
 
 class TestValidateK8sName:

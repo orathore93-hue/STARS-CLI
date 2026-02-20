@@ -1,12 +1,12 @@
-# T.A.R.S - What Makes It Unique
+# S.T.A.R.S - What Makes It Unique
 
 ## 🎯 Unique Selling Points
 
 ### 1. **Personality-Driven Monitoring**
-Unlike boring monitoring tools, T.A.R.S has personality. It makes debugging actually enjoyable.
+Unlike boring monitoring tools, S.T.A.R.S has personality. It makes debugging actually enjoyable.
 
 ### 2. **AI-Powered Troubleshooting**
-Not just metrics - T.A.R.S uses Gemini AI to analyze issues and provide actionable insights in plain English (with sarcasm).
+Not just metrics - S.T.A.R.S uses Gemini AI to analyze issues and provide actionable insights in plain English (with sarcasm).
 
 ### 3. **Zero Configuration**
 No YAML files, no complex setup. Install and run. That's it.
@@ -27,23 +27,23 @@ Designed for 3 AM incidents when you need answers fast, not more data to parse.
 - Community-driven
 - No vendor lock-in
 
-## 🎭 The TARS Experience
+## 🎭 The STARS Experience
 
 Other tools: "Pod xyz-123 has status CrashLoopBackOff"
 
-T.A.R.S: "Developer, your pod is having an existential crisis. It's CrashLooping because it can't find its database. Check your secrets. Humor setting: 90%."
+S.T.A.R.S: "Developer, your pod is having an existential crisis. It's CrashLooping because it can't find its database. Check your secrets. Humor setting: 90%."
 
 ## 🚀 Future Vision
 
-- Slack/Discord integration with TARS personality
+- Slack/Discord integration with STARS personality
 - Predictive issue detection
-- Auto-remediation with TARS commentary
+- Auto-remediation with STARS commentary
 - Multi-cluster management
 - Cost optimization suggestions
 - Historical trend analysis
 - Custom alert rules with natural language
 
-## 💡 Why Developers Choose T.A.R.S
+## 💡 Why Developers Choose S.T.A.R.S
 
 1. **It's Fun** - Debugging doesn't have to be painful
 2. **It's Smart** - AI-powered insights, not just raw data
@@ -54,4 +54,4 @@ T.A.R.S: "Developer, your pod is having an existential crisis. It's CrashLooping
 
 ---
 
-*"Monitoring your cluster with intelligence and wit."* - T.A.R.S
+*"Monitoring your cluster with intelligence and wit."* - S.T.A.R.S

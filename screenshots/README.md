@@ -1,4 +1,4 @@
-# 🎬 TARS CLI Demo & Screenshots
+# 🎬 SSTARS CLI Demo & Screenshots
 
 ## 📸 Screenshots Captured
 
@@ -18,7 +18,7 @@ asciinema rec tars-demo.cast
 
 # 2. Run these commands (manually for best effect):
 clear
-echo "# TARS CLI Demo - AI-Powered Kubernetes Monitoring"
+echo "# SSTARS CLI Demo - AI-Powered Kubernetes Monitoring"
 echo ""
 sleep 2
 

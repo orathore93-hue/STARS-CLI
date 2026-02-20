@@ -26,7 +26,7 @@ Allow AI analysis? [y/N]:
 
 **Implementation:**
 - Consent check in `health_check()` and `diagnose_pod()` methods
-- Stored in `~/.tars/ai_consent` with chmod 600
+- Stored in `~/.stars/ai_consent` with chmod 600
 - Prompts only once, remembers choice
 - Default: NO (user must opt-in)
 
@@ -112,7 +112,7 @@ def analyze_pod_issue(self, pod_data: Dict[str, Any], allow_external: bool = Tru
 
 ### src/tars/config.py
 ```python
-CONSENT_FILE = TARS_DIR / "ai_consent"
+CONSENT_FILE = STARS_DIR / "ai_consent"
 
 def check_ai_consent() -> bool:
     return CONSENT_FILE.exists()

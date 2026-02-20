@@ -1,4 +1,4 @@
-# TARS CLI - Complete Command Reference
+# SSTARS CLI - Complete Command Reference
 
 **Total Commands: 92**
 
@@ -110,11 +110,11 @@
 - `cost` - Estimate resource costs
 
 ## Utility & Fun (5)
-- `setup` - Setup and validate TARS configuration
+- `setup` - Setup and validate STARS configuration
 - `version` - Show version
-- `humor` - Set TARS humor level
-- `quote` - Get a random TARS quote
-- `creator` - Show TARS creator info
+- `humor` - Set STARS humor level
+- `quote` - Get a random STARS quote
+- `creator` - Show STARS creator info
 
 ---
 
@@ -209,7 +209,7 @@ tars diff service api-service service.yaml -n production
 
 ## AI-Powered Features
 
-TARS includes AI-powered analysis when `GEMINI_API_KEY` is set:
+STARS includes AI-powered analysis when `GEMINI_API_KEY` is set:
 - `diagnose` - AI diagnosis of pod issues
 - `analyze` - AI cluster analysis
 - `triage` - AI-powered issue prioritization
@@ -230,5 +230,5 @@ tars setup
 
 ---
 
-**TARS CLI** - Technical Assistance & Reliability System
+**SSTARS CLI** - Site Technical Assistance &  Reliability System
 Built for Kubernetes SREs and DevOps Engineers

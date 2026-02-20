@@ -10,7 +10,7 @@
    - Copy the token (starts with `pypi-`)
 
 3. **Add token to GitHub**:
-   - Go to https://github.com/orathore93-hue/tars-cli/settings/secrets/actions
+   - Go to https://github.com/orathore93-hue/stars-cli/settings/secrets/actions
    - Click "New repository secret"
    - Name: `PYPI_API_TOKEN`
    - Value: Your PyPI token
@@ -27,7 +27,7 @@
    ```
 
 3. **Create GitHub release**:
-   - Go to https://github.com/orathore93-hue/tars-cli/releases/new
+   - Go to https://github.com/orathore93-hue/stars-cli/releases/new
    - Choose the tag you just created
    - Add release notes
    - Click "Publish release"

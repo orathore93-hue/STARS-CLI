@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We as members, contributors, and leaders pledge to make participation in T.A.R.S a harassment-free experience for everyone.
+We as members, contributors, and leaders pledge to make participation in S.T.A.R.S a harassment-free experience for everyone.
 
 ## Our Standards
 
@@ -30,4 +30,4 @@ This Code of Conduct is adapted from the [Contributor Covenant](https://www.cont
 
 ---
 
-*"Absolute honesty isn't always the most diplomatic."* - T.A.R.S
+*"Absolute honesty isn't always the most diplomatic."* - S.T.A.R.S

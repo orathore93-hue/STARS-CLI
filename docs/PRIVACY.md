@@ -1,14 +1,14 @@
-# Privacy Policy - TARS CLI
+# Privacy Policy - SSTARS CLI
 
 ## Overview
 
-TARS CLI is designed with privacy in mind. This document explains what data is collected, where it goes, and how you can control it.
+SSTARS CLI is designed with privacy in mind. This document explains what data is collected, where it goes, and how you can control it.
 
 ## Data Collection
 
 ### Local Data Only (Default Operations)
 
-Most TARS commands operate **entirely locally** and never send data externally:
+Most STARS commands operate **entirely locally** and never send data externally:
 
 - `tars pods` - Lists pods from your cluster
 - `tars logs` - Retrieves logs locally
@@ -67,7 +67,7 @@ When AI features are used, the following **anonymized** data is sent:
 
 ## What is NOT Sent
 
-TARS **never** sends:
+STARS **never** sends:
 
 - ❌ Secrets or ConfigMap contents
 - ❌ Environment variables
@@ -84,7 +84,7 @@ All sensitive data is **redacted before transmission** using pattern matching.
 
 ## Data Redaction
 
-Before sending any data to external APIs, TARS applies comprehensive redaction:
+Before sending any data to external APIs, STARS applies comprehensive redaction:
 
 ```python
 # Patterns automatically redacted:
@@ -130,7 +130,7 @@ tars privacy grant
 tars privacy revoke
 ```
 
-Consent is stored locally in `~/.tars/ai_consent` (chmod 600).
+Consent is stored locally in `~/.stars/ai_consent` (chmod 600).
 
 ## Disabling AI Features
 
@@ -154,7 +154,7 @@ tars privacy revoke
 
 ### Air-Gapped Environments
 
-TARS works perfectly in air-gapped environments:
+STARS works perfectly in air-gapped environments:
 
 1. Don't set `GEMINI_API_KEY`
 2. All core features work without AI
@@ -173,7 +173,7 @@ TARS works perfectly in air-gapped environments:
 
 ### No Other External Services
 
-TARS does **not** use:
+STARS does **not** use:
 - Analytics or telemetry
 - Crash reporting services
 - Usage tracking
@@ -184,10 +184,10 @@ TARS does **not** use:
 
 ### Local Storage Only
 
-All TARS data is stored locally in `~/.tars/`:
+All STARS data is stored locally in `~/.stars/`:
 
 ```
-~/.tars/
+~/.stars/
 ├── config.yaml       # User configuration (chmod 600)
 ├── audit.log         # Audit trail (chmod 600)
 ├── ai_consent        # AI consent flag (chmod 600)
@@ -199,7 +199,7 @@ All TARS data is stored locally in `~/.tars/`:
 
 ### No Cloud Storage
 
-TARS does **not**:
+STARS does **not**:
 - Store data in cloud services
 - Sync data across devices
 - Upload logs or metrics
@@ -255,9 +255,9 @@ If you work in regulated industries (healthcare, finance, government):
 
 ### Open Source
 
-TARS is open source. You can:
+STARS is open source. You can:
 
-- Review all code: https://github.com/your-org/tars-cli
+- Review all code: https://github.com/your-org/stars-cli
 - Audit data handling: `src/tars/ai.py`, `src/tars/utils.py`
 - Verify redaction patterns
 - Build from source
@@ -268,10 +268,10 @@ All operations are logged locally:
 
 ```bash
 # Review what data was sent
-tail -f ~/.tars/audit.log
+tail -f ~/.stars/audit.log
 
 # Check AI API calls
-grep "Gemini API" ~/.tars/tars.log
+grep "Gemini API" ~/.stars/tars.log
 ```
 
 ## Your Rights
@@ -280,8 +280,8 @@ You have the right to:
 
 1. ✅ **Know what data is sent** - Documented above
 2. ✅ **Opt-out** - Use `--no-ai` or revoke consent
-3. ✅ **Access logs** - All stored in `~/.tars/`
-4. ✅ **Delete data** - `rm -rf ~/.tars/`
+3. ✅ **Access logs** - All stored in `~/.stars/`
+4. ✅ **Delete data** - `rm -rf ~/.stars/`
 5. ✅ **Audit code** - Open source, review anytime
 
 ## Questions?
@@ -298,4 +298,4 @@ This privacy policy may be updated. Check the repository for the latest version.
 
 ---
 
-**Summary**: TARS respects your privacy. Most features are local-only. AI features are optional, require consent, and send only anonymized data. You have full control.
+**Summary**: STARS respects your privacy. Most features are local-only. AI features are optional, require consent, and send only anonymized data. You have full control.

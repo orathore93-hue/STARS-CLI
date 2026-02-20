@@ -1,6 +1,6 @@
-# Contributing to TARS CLI
+# Contributing to SSTARS CLI
 
-Thank you for your interest in contributing to TARS CLI! This document provides guidelines for contributing.
+Thank you for your interest in contributing to SSTARS CLI! This document provides guidelines for contributing.
 
 ## Code of Conduct
 
@@ -10,12 +10,12 @@ Be respectful, professional, and inclusive. We're all here to build great tools.
 
 ### Reporting Bugs
 
-1. Check if the bug already exists in [Issues](https://github.com/orathore93-hue/tars-cli/issues)
+1. Check if the bug already exists in [Issues](https://github.com/orathore93-hue/stars-cli/issues)
 2. Create a new issue with:
    - Clear title
    - Steps to reproduce
    - Expected vs actual behavior
-   - TARS version (`tars version`)
+   - STARS version (`tars version`)
    - Kubernetes version
    - Environment details
 
@@ -62,8 +62,8 @@ Be respectful, professional, and inclusive. We're all here to build great tools.
 
 ```bash
 # Clone repository
-git clone https://github.com/orathore93-hue/tars-cli.git
-cd tars-cli
+git clone https://github.com/orathore93-hue/stars-cli.git
+cd stars-cli
 
 # Create virtual environment
 python -m venv venv
@@ -171,4 +171,4 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 ---
 
-Thank you for contributing to TARS CLI! 🚀
+Thank you for contributing to SSTARS CLI! 🚀

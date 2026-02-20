@@ -1,4 +1,4 @@
-# TARS CLI Changelog
+# SSTARS CLI Changelog
 
 ## [4.2.4] - 2026-02-20 - ENTERPRISE GRADE RELEASE 🏢
 
@@ -10,9 +10,9 @@
 - **Quality Assurance**: Automated testing and security scanning
 
 ### 🤖 UX Improvements
-- **TARS Robot**: Iconic ASCII robot art in welcome screen
+- **STARS Robot**: Iconic ASCII robot art in welcome screen
 - **Welcome Command**: Full legacy experience with banner + robot
-- **Visual Identity**: Complete TARS branding
+- **Visual Identity**: Complete STARS branding
 
 ### 🔧 Technical
 - Simplified CI/CD workflow (Python 3.9-3.11)
@@ -37,7 +37,7 @@
 ## [4.1.3] - 2026-02-20 - PRODUCTION SECURITY RELEASE 🔐
 
 ### 🔒 Critical Security Enhancements
-- **Audit Logging**: All destructive operations logged to ~/.tars/audit.log
+- **Audit Logging**: All destructive operations logged to ~/.stars/audit.log
 - **Context Confirmation**: Restart/scale operations show current context and require confirmation
 - **Enhanced Safety**: All destructive ops display context before execution
 - **Compliance Ready**: Audit trail for SOC 2, HIPAA, PCI DSS, GDPR
@@ -68,8 +68,8 @@
 ### 🔒 Enterprise Security Features
 - **Human-in-the-Loop for autofix**: Shows exact kubectl commands with [Y/n] confirmation
 - **Sensitive Data Redaction**: Regex-based scrubber for passwords, tokens, API keys, AWS keys
-- **Secure Local State**: All data in ~/.tars/ with chmod 700/600 permissions
-- **No /tmp/ usage**: Logs saved securely in ~/.tars/logs/
+- **Secure Local State**: All data in ~/.stars/ with chmod 700/600 permissions
+- **No /tmp/ usage**: Logs saved securely in ~/.stars/logs/
 
 ### 🐛 Bug Fixes
 - Fixed setup command AttributeError (config.settings access)
@@ -130,8 +130,8 @@ This is a complete rewrite with ALL 89 commands from legacy, enterprise-grade ar
 - setup, version, humor, quote, creator, welcome
 
 #### 🎨 UI/UX Improvements
-- Exact legacy ASCII banner with T.A.R.S separated by dots
-- Welcome screen with random TARS quotes
+- Exact legacy ASCII banner with S.T.A.R.S separated by dots
+- Welcome screen with random STARS quotes
 - God mode with SRE power commands menu
 - Clean, professional output (no banner spam on commands)
 - Enterprise-grade CLI following kubectl patterns
@@ -170,7 +170,7 @@ This is a complete rewrite with ALL 89 commands from legacy, enterprise-grade ar
 ## [3.3.0] - 2026-02-20 - UX IMPROVEMENTS 🎨
 
 ### ✨ User Experience Enhancements
-- **Added:** Welcoming ASCII art banner with TARS logo
+- **Added:** Welcoming ASCII art banner with STARS logo
 - **Added:** Random welcome messages for personality
 - **Improved:** Show help menu instead of error when no command provided
 - **Enhanced:** Better first-run experience with visual branding
@@ -222,12 +222,12 @@ This release achieves 100% production readiness with performance optimization, c
 
 ### 🎯 Phase 2: Enhanced Features - COMPLETE
 
-This release adds enterprise-grade features making TARS CLI the definitive tool for SREs worldwide.
+This release adds enterprise-grade features making SSTARS CLI the definitive tool for SREs worldwide.
 
 #### ✅ Configuration Management
 - **Added:** Persistent configuration system with YAML support
 - **Added:** `tars config` command group (list, get, set, reset, edit)
-- **Location:** `~/.tars/config.yaml`
+- **Location:** `~/.stars/config.yaml`
 - **Features:** Default namespace, cluster, thresholds, Prometheus URL, webhook URL
 - **Result:** Consistent behavior across sessions, no manual configuration
 
@@ -249,7 +249,7 @@ This release adds enterprise-grade features making TARS CLI the definitive tool 
 - **Added:** `tars history` command to view command history
 - **Added:** `tars replay <id>` command to replay commands
 - **Added:** `save_to_history()` function for automatic tracking
-- **Location:** `~/.tars/history.json`
+- **Location:** `~/.stars/history.json`
 - **Features:** Search history, last 1000 commands, success/failure tracking
 - **Result:** Repeatable operations, faster troubleshooting
 
@@ -279,7 +279,7 @@ This release adds enterprise-grade features making TARS CLI the definitive tool 
 
 ### 🎯 Phase 1: Production Hardening - COMPLETE
 
-This release transforms TARS CLI into a production-grade, world-class tool for SREs and on-call engineers.
+This release transforms SSTARS CLI into a production-grade, world-class tool for SREs and on-call engineers.
 
 #### ✅ Error Handling Overhaul
 - **Fixed:** All 11 bare `except:` statements replaced with specific exception handling
@@ -305,7 +305,7 @@ This release transforms TARS CLI into a production-grade, world-class tool for S
 
 #### ✅ Structured Logging System
 - **Added:** Comprehensive logging framework with rotation
-- **Location:** `~/.tars/tars.log` (10MB max, 5 backup files)
+- **Location:** `~/.stars/tars.log` (10MB max, 5 backup files)
 - **Added:** Global `--debug` and `--verbose` flags for all commands
 - **Format:** Timestamp, level, function, line number, message
 - **Features:** Automatic log rotation, separate file and console handlers
@@ -493,7 +493,7 @@ tars diff <context1> <context2>
 - **Explicit Consent Prompt**: AI features now require user consent on first use
   - Clear privacy notice explaining data sent to Google Gemini
   - User must explicitly opt-in before any external data transmission
-  - Consent stored in ~/.tars/ai_consent (chmod 600)
+  - Consent stored in ~/.stars/ai_consent (chmod 600)
 - **Per-Command Opt-Out**: Added `--no-ai` flag to commands
   - `tars health --no-ai` - Disable AI for health checks
   - `tars diagnose --no-ai` - Disable AI for diagnostics
@@ -524,6 +524,6 @@ tars diff <context1> <context2>
 - `MonitoringCommands.diagnose_pod()` - Added `allow_ai` parameter
 
 ### Configuration
-- New `CONSENT_FILE` in ~/.tars/ai_consent
+- New `CONSENT_FILE` in ~/.stars/ai_consent
 - New functions: `check_ai_consent()`, `grant_ai_consent()`, `revoke_ai_consent()`
 
