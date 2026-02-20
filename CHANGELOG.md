@@ -1,5 +1,31 @@
 # TARS CLI Changelog
 
+## [4.1.2] - 2026-02-20 - SECURITY & STABILITY RELEASE 🔒
+
+### 🔒 Enterprise Security Features
+- **Human-in-the-Loop for autofix**: Shows exact kubectl commands with [Y/n] confirmation
+- **Sensitive Data Redaction**: Regex-based scrubber for passwords, tokens, API keys, AWS keys
+- **Secure Local State**: All data in ~/.tars/ with chmod 700/600 permissions
+- **No /tmp/ usage**: Logs saved securely in ~/.tars/logs/
+
+### 🐛 Bug Fixes
+- Fixed setup command AttributeError (config.settings access)
+- Fixed all commands to work correctly across namespaces
+- Improved error handling and logging
+
+### ✨ Improvements
+- Pods command shows all namespaces by default
+- Clear help text for all commands
+- Better user feedback and error messages
+- All 89 commands tested and verified
+
+### 📊 Testing
+- Comprehensive testing of all core commands
+- Verified security features working correctly
+- Tested namespace filtering and all-namespace views
+
+---
+
 ## [4.0.0] - 2026-02-20 - COMPLETE LEGACY FEATURE PARITY 🚀
 
 ### 🎯 Major Release - Full Legacy Implementation
