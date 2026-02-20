@@ -113,15 +113,57 @@ def init():
 @app.command()
 def setup():
     """Setup and validate STARS configuration"""
+    import getpass
+    import keyring
+    from pathlib import Path
+    import os
+    
     console.print("[bold]STARS CLI Setup[/bold]\n")
     
-    # Check Gemini API key
-    if config.settings.gemini_api_key:
-        print_success("GEMINI_API_KEY configured")
+    # Check if API key already exists
+    try:
+        existing_key = keyring.get_password("stars-cli", "gemini_api_key")
+        if not existing_key:
+            # Check local credentials file
+            creds_file = Path.home() / ".stars" / "credentials"
+            if creds_file.exists():
+                with open(creds_file, 'r') as f:
+                    existing_key = f.read().strip()
+    except Exception:
+        existing_key = None
+    
+    if existing_key:
+        print_success("Gemini API key already configured")
+        console.print("  Run 'stars delete-api-key' to remove and reconfigure\n")
     else:
-        print_error("GEMINI_API_KEY not set")
-        console.print("  Get API key: https://makersuite.google.com")
-        console.print("  Set with: export GEMINI_API_KEY='your-key'\n")
+        console.print("[yellow]Gemini API key not found[/yellow]")
+        console.print("  Get your API key: https://makersuite.google.com\n")
+        
+        if typer.confirm("Would you like to configure it now?"):
+            api_key = getpass.getpass("Enter your Gemini API key (input hidden): ")
+            
+            if not api_key or not api_key.strip():
+                print_error("No API key provided")
+            else:
+                # Try to save to keyring
+                try:
+                    keyring.set_password("stars-cli", "gemini_api_key", api_key.strip())
+                    print_success("API key saved to OS keychain")
+                except Exception as e:
+                    # Fallback to local file
+                    console.print(f"[yellow]⚠️  Keyring unavailable: {e}[/yellow]")
+                    console.print("[yellow]Falling back to local encrypted storage[/yellow]\n")
+                    
+                    creds_file = Path.home() / ".stars" / "credentials"
+                    creds_file.parent.mkdir(exist_ok=True, mode=0o700)
+                    
+                    with open(creds_file, 'w') as f:
+                        f.write(api_key.strip())
+                    
+                    os.chmod(creds_file, 0o600)
+                    print_success(f"API key saved to {creds_file} (chmod 600)")
+                    console.print("[yellow]⚠️  Warning: Using local file storage (no OS keychain detected)[/yellow]")
+                    console.print("[yellow]    For production, use environment variable: export GEMINI_API_KEY='your-key'[/yellow]\n")
     
     # Check Kubernetes
     try:
@@ -137,8 +179,79 @@ def setup():
         print_info("Prometheus not configured (optional)")
         console.print("  Set with: export PROMETHEUS_URL='http://prometheus:9090'\n")
     
-    console.print("\n[green]Setup validation complete[/green]")
-    console.print("Run: tars health")
+    console.print("\n[green]✅ Setup complete[/green]")
+    console.print("Run: stars health")
+
+
+@app.command()
+def set_api_key():
+    """Store Gemini API key securely in OS keychain"""
+    import getpass
+    import keyring
+    from pathlib import Path
+    import os
+    
+    console.print("[bold]Configure Gemini API Key[/bold]\n")
+    console.print("Get your API key: https://makersuite.google.com\n")
+    
+    api_key = getpass.getpass("Enter your Gemini API key (input hidden): ")
+    
+    if not api_key or not api_key.strip():
+        print_error("No API key provided")
+        raise typer.Exit(1)
+    
+    # Try to save to keyring
+    try:
+        keyring.set_password("stars-cli", "gemini_api_key", api_key.strip())
+        print_success("✅ API key saved to OS keychain")
+        console.print("[dim]Your key is encrypted and stored securely[/dim]")
+    except Exception as e:
+        # Fallback to local file
+        console.print(f"[yellow]⚠️  Keyring unavailable: {e}[/yellow]")
+        console.print("[yellow]Falling back to local encrypted storage[/yellow]\n")
+        
+        creds_file = Path.home() / ".stars" / "credentials"
+        creds_file.parent.mkdir(exist_ok=True, mode=0o700)
+        
+        with open(creds_file, 'w') as f:
+            f.write(api_key.strip())
+        
+        os.chmod(creds_file, 0o600)
+        print_success(f"✅ API key saved to {creds_file} (chmod 600)")
+        console.print("[yellow]⚠️  Warning: Using local file storage (no OS keychain detected)[/yellow]")
+        console.print("[yellow]    For production, use environment variable: export GEMINI_API_KEY='your-key'[/yellow]")
+
+
+@app.command()
+def delete_api_key():
+    """Delete Gemini API key from secure storage"""
+    import keyring
+    from pathlib import Path
+    
+    console.print("[bold]Delete Gemini API Key[/bold]\n")
+    
+    deleted = False
+    
+    # Try to delete from keyring
+    try:
+        keyring.delete_password("stars-cli", "gemini_api_key")
+        print_success("API key deleted from OS keychain")
+        deleted = True
+    except Exception:
+        pass
+    
+    # Try to delete from local file
+    creds_file = Path.home() / ".stars" / "credentials"
+    if creds_file.exists():
+        creds_file.unlink()
+        print_success(f"API key deleted from {creds_file}")
+        deleted = True
+    
+    if not deleted:
+        print_info("No API key found in keychain or local storage")
+    else:
+        console.print("\n[green]✅ API key removed[/green]")
+        console.print("Run 'stars set-api-key' to configure a new key")
 
 
 @app.command()

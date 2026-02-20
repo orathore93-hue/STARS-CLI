@@ -73,10 +73,7 @@ class ThresholdsConfig(BaseModel):
 
 
 class TarsSettings(BaseSettings):
-    """SSTARS CLI settings from environment and config file"""
-    
-    # API Keys
-    gemini_api_key: Optional[str] = Field(default=None, env='GEMINI_API_KEY')
+    """STARS CLI settings from environment and config file"""
     
     # Kubernetes
     default_namespace: Optional[str] = Field(default=None, env='STARS_NAMESPACE')
@@ -96,11 +93,32 @@ class TarsSettings(BaseSettings):
         env_file_encoding = 'utf-8'
         case_sensitive = False
     
-    @validator('gemini_api_key')
-    def validate_api_key(cls, v):
-        if v and not v.startswith(('AIza', 'test-')):
-            raise ValueError('Invalid Gemini API key format')
-        return v
+    @property
+    def gemini_api_key(self) -> Optional[str]:
+        """Get API key from secure storage (keychain -> local file -> env var)"""
+        # Priority 1: OS Keychain
+        try:
+            import keyring
+            key = keyring.get_password("stars-cli", "gemini_api_key")
+            if key:
+                return key
+        except Exception:
+            pass
+        
+        # Priority 2: Local credentials file
+        try:
+            from pathlib import Path
+            creds_file = Path.home() / ".stars" / "credentials"
+            if creds_file.exists():
+                with open(creds_file, 'r') as f:
+                    key = f.read().strip()
+                    if key:
+                        return key
+        except Exception:
+            pass
+        
+        # Priority 3: Environment variable
+        return os.getenv('GEMINI_API_KEY')
     
     @validator('prometheus_url')
     def validate_prometheus_url(cls, v):
