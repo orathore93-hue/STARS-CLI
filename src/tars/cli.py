@@ -36,7 +36,7 @@ app = typer.Typer(
     name="tars",
     help="AI-Powered Kubernetes Monitoring CLI",
     add_completion=False,
-    no_args_is_help=True
+    no_args_is_help=False
 )
 console = Console()
 
@@ -1163,13 +1163,22 @@ def cardinality_labels(
 def main():
     """Main entry point"""
     try:
-        # Show banner when showing help (no command or --help)
-        if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1] in ['--help', '-h']):
+        # Show banner only when no arguments (just 'tars')
+        if len(sys.argv) == 1:
             console.print(TARS_BANNER)
+            console.print("[dim]Run [bold]tars --help[/bold] to see all available commands[/dim]\n")
+            return
+        
+        # Show banner with help
+        if len(sys.argv) == 2 and sys.argv[1] in ['--help', '-h']:
+            console.print(TARS_BANNER)
+        
         app()
     except KeyboardInterrupt:
         console.print("\n[yellow]Operation cancelled[/yellow]")
         raise typer.Exit(0)
+    except typer.Exit:
+        raise
     except Exception as e:
         logger.error(f"Error: {e}", exc_info=True)
         print_error(f"Error: {e}")
