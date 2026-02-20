@@ -460,3 +460,70 @@ tars diff <context1> <context2>
 **Total Commands**: 54+
 **Focus**: SRE & On-Call Engineers
 **Philosophy**: Reduce toil, increase reliability
+
+## [4.2.5] - 2026-02-20
+
+### Security
+- **RBAC Enforcement**: Added mandatory permission checks before all destructive operations
+  - `delete_pod()` now checks delete permission before execution
+  - `restart_resource()` checks patch permission
+  - `scale_resource()` checks patch permission  
+  - `drain_node()` checks both node patch and pod delete permissions
+  - `delete_from_yaml()` checks permissions per resource type
+- **Clear Error Messages**: PermissionError with actionable guidance when RBAC checks fail
+- **Comprehensive Documentation**: Added docs/RBAC_REQUIREMENTS.md with:
+  - Minimum required permissions per command
+  - Example ClusterRole definitions for read-only, operator, and admin access
+  - Setup instructions for service accounts
+  - Permission validation commands
+  - Security best practices
+
+### Documentation
+- Updated README.md with RBAC verification step in Quick Start
+- Updated SECURITY.md with RBAC enforcement details
+- Updated SECURITY_AUDIT.md with RBAC compliance section
+
+### Testing
+- Added tests/unit/test_rbac_enforcement.py with comprehensive RBAC test coverage
+
+
+## [4.2.6] - 2026-02-20
+
+### Privacy & Consent
+- **Explicit Consent Prompt**: AI features now require user consent on first use
+  - Clear privacy notice explaining data sent to Google Gemini
+  - User must explicitly opt-in before any external data transmission
+  - Consent stored in ~/.tars/ai_consent (chmod 600)
+- **Per-Command Opt-Out**: Added `--no-ai` flag to commands
+  - `tars health --no-ai` - Disable AI for health checks
+  - `tars diagnose --no-ai` - Disable AI for diagnostics
+  - Allows granular control over external data sharing
+- **Privacy Management Command**: New `tars privacy` command
+  - `tars privacy status` - Check current consent status
+  - `tars privacy grant` - Grant consent without prompts
+  - `tars privacy revoke` - Revoke consent and disable AI
+- **Enhanced Logging**: AI API calls now explicitly logged
+  - "Sending pod data to Google Gemini API" messages
+  - Audit trail for compliance requirements
+
+### Documentation
+- **docs/PRIVACY.md**: Comprehensive privacy policy
+  - What data is sent (and what isn't)
+  - Data redaction details
+  - Consent management
+  - Compliance considerations (GDPR, regulated industries)
+  - Air-gapped deployment guidance
+  - Third-party service details
+- Updated README.md with privacy notice in Quick Start
+- Updated SECURITY.md with consent and opt-out details
+
+### API Changes
+- `AIAnalyzer.analyze_pod_issue()` - Added `allow_external` parameter
+- `AIAnalyzer.analyze_cluster_health()` - Added `allow_external` parameter
+- `MonitoringCommands.health_check()` - Added `allow_ai` parameter
+- `MonitoringCommands.diagnose_pod()` - Added `allow_ai` parameter
+
+### Configuration
+- New `CONSENT_FILE` in ~/.tars/ai_consent
+- New functions: `check_ai_consent()`, `grant_ai_consent()`, `revoke_ai_consent()`
+

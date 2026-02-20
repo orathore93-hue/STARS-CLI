@@ -31,8 +31,11 @@
 **Risk:** Commands require appropriate Kubernetes RBAC permissions
 
 **Mitigation:**
+- Pre-flight RBAC checks before all destructive operations
+- Clear permission error messages with guidance
 - Use service accounts with minimal required permissions
 - Implement RBAC policies for your organization
+- See docs/RBAC_REQUIREMENTS.md for detailed permission requirements
 - Test in non-production first
 
 ### 2. Kubernetes Context
@@ -60,10 +63,13 @@ export GEMINI_API_KEY=$(aws secretsmanager get-secret-value --secret-id tars-api
 **Risk:** AI features send data to external API (Gemini)
 
 **Mitigation:**
+- **Explicit user consent required** on first use
+- **Per-command opt-out** via `--no-ai` flag
 - Data is redacted before sending
 - Can disable AI features by not setting GEMINI_API_KEY
 - Review data being sent in logs
 - Use in air-gapped environments without AI features
+- See docs/PRIVACY.md for complete data handling details
 
 ### 5. Audit and Compliance
 **Risk:** Need to track who did what

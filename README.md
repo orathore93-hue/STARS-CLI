@@ -27,9 +27,16 @@ pip install tars-cli
 export GEMINI_API_KEY='your-key'  # Get free key at https://makersuite.google.com
 tars setup
 
+# Verify RBAC permissions (recommended)
+kubectl auth can-i --list
+
 # Start monitoring
 tars oncall
 ```
+
+**Privacy Note**: AI features send anonymized cluster data to Google Gemini. See [Privacy Policy](docs/PRIVACY.md). Use `--no-ai` flag to disable.
+
+**RBAC Note**: TARS requires specific Kubernetes RBAC permissions. See [RBAC Requirements](docs/RBAC_REQUIREMENTS.md) for details.
 
 ## 💪 Core Features for SREs
 

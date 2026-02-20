@@ -22,9 +22,27 @@ class MonitoringCommands:
             logger.error(f"Failed to initialize Kubernetes client: {e}")
             raise
     
-    def health_check(self, namespace: Optional[str] = None):
+    def health_check(self, namespace: Optional[str] = None, allow_ai: bool = True):
         """Check cluster health - delegates to API and output layers"""
         try:
+            # Check AI consent on first use
+            if allow_ai and analyzer.is_available():
+                from .config import check_ai_consent, grant_ai_consent
+                from rich.prompt import Confirm
+                
+                if not check_ai_consent():
+                    console.print("\n[yellow]⚠️  AI Analysis Privacy Notice[/yellow]")
+                    console.print("AI features send anonymized cluster data to Google Gemini API for analysis.")
+                    console.print("Data sent: pod names, status, container info (secrets are redacted)")
+                    console.print("Use --no-ai flag to disable. See docs/PRIVACY.md for details.\n")
+                    
+                    if Confirm.ask("Allow AI analysis?", default=False):
+                        grant_ai_consent()
+                        console.print("[green]✓ AI consent granted. Use 'tars privacy revoke' to change.[/green]\n")
+                    else:
+                        allow_ai = False
+                        console.print("[yellow]AI analysis disabled for this session.[/yellow]\n")
+            
             # Get data from API (no output here)
             nodes = self.k8s.list_nodes()
             pods = self.k8s.list_pods(namespace)
@@ -35,10 +53,10 @@ class MonitoringCommands:
             # Output results (delegated to utils)
             self._display_health_report(health_metrics)
             
-            # AI analysis (if available)
-            if analyzer.is_available():
+            # AI analysis (if available and allowed)
+            if allow_ai and analyzer.is_available():
                 try:
-                    analysis = analyzer.analyze_cluster_health(health_metrics)
+                    analysis = analyzer.analyze_cluster_health(health_metrics, allow_external=True)
                     console.print(f"\n[dim]AI Analysis: {analysis}[/dim]")
                 except GeminiAPIError as e:
                     logger.debug(f"AI analysis unavailable: {e}")
@@ -66,12 +84,30 @@ class MonitoringCommands:
             logger.error(f"List pods error: {e}", exc_info=True)
             raise
     
-    def diagnose_pod(self, pod_name: str, namespace: str = "default"):
+    def diagnose_pod(self, pod_name: str, namespace: str = "default", allow_ai: bool = True):
         """Diagnose pod issues"""
         try:
             if not validate_namespace(namespace):
                 print_error(f"Invalid namespace: {namespace}")
                 return
+            
+            # Check AI consent on first use
+            if allow_ai and analyzer.is_available():
+                from .config import check_ai_consent, grant_ai_consent
+                from rich.prompt import Confirm
+                
+                if not check_ai_consent():
+                    console.print("\n[yellow]⚠️  AI Analysis Privacy Notice[/yellow]")
+                    console.print("AI features send anonymized cluster data to Google Gemini API for analysis.")
+                    console.print("Data sent: pod names, status, container info (secrets are redacted)")
+                    console.print("Use --no-ai flag to disable. See docs/PRIVACY.md for details.\n")
+                    
+                    if Confirm.ask("Allow AI analysis?", default=False):
+                        grant_ai_consent()
+                        console.print("[green]✓ AI consent granted. Use 'tars privacy revoke' to change.[/green]\n")
+                    else:
+                        allow_ai = False
+                        console.print("[yellow]AI analysis disabled for this session.[/yellow]\n")
             
             # Get data from API
             pod = self.k8s.get_pod(pod_name, namespace)
@@ -79,11 +115,11 @@ class MonitoringCommands:
             # Display basic info
             self._display_pod_info(pod)
             
-            # AI analysis if pod has issues
-            if pod.status.phase != "Running" and analyzer.is_available():
+            # AI analysis if pod has issues and allowed
+            if allow_ai and pod.status.phase != "Running" and analyzer.is_available():
                 try:
                     pod_data = self._extract_pod_data(pod)
-                    analysis = analyzer.analyze_pod_issue(pod_data)
+                    analysis = analyzer.analyze_pod_issue(pod_data, allow_external=True)
                     console.print(f"\n[bold]Analysis:[/bold]\n{analysis}")
                 except GeminiAPIError as e:
                     logger.debug(f"AI analysis failed: {e}")

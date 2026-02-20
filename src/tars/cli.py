@@ -63,11 +63,14 @@ console = Console()
 
 
 @app.command()
-def health(namespace: Optional[str] = typer.Option(None, "--namespace", "-n", help="Filter by namespace")):
+def health(
+    namespace: Optional[str] = typer.Option(None, "--namespace", "-n", help="Filter by namespace"),
+    no_ai: bool = typer.Option(False, "--no-ai", help="Disable AI analysis (no data sent externally)")
+):
     """Check cluster health"""
     try:
         cmd = MonitoringCommands()
-        cmd.health_check(namespace)
+        cmd.health_check(namespace, allow_ai=not no_ai)
     except Exception as e:
         print_error(f"Command failed: {e}")
         raise typer.Exit(1)
@@ -87,12 +90,13 @@ def pods(namespace: Optional[str] = typer.Option(None, "--namespace", "-n", help
 @app.command()
 def diagnose(
     pod_name: str = typer.Argument(..., help="Name of the pod to diagnose"),
-    namespace: str = typer.Option("default", "--namespace", "-n", help="Kubernetes namespace")
+    namespace: str = typer.Option("default", "--namespace", "-n", help="Kubernetes namespace"),
+    no_ai: bool = typer.Option(False, "--no-ai", help="Disable AI analysis (no data sent externally)")
 ):
     """Diagnose pod issues and get AI-powered recommendations"""
     try:
         cmd = MonitoringCommands()
-        cmd.diagnose_pod(pod_name, namespace)
+        cmd.diagnose_pod(pod_name, namespace, allow_ai=not no_ai)
     except Exception as e:
         print_error(f"Command failed: {e}")
         raise typer.Exit(1)
@@ -791,6 +795,46 @@ def benchmark(namespace: str = typer.Option("default", "--namespace", "-n", help
     try:
         cmd = MonitoringCommands()
         cmd.run_benchmark(namespace)
+    except Exception as e:
+        print_error(f"Command failed: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def privacy(
+    action: str = typer.Argument(..., help="Action: status, revoke, or grant")
+):
+    """Manage AI data sharing consent"""
+    from .config import check_ai_consent, grant_ai_consent, revoke_ai_consent
+    
+    try:
+        if action == "status":
+            if check_ai_consent():
+                print_success("AI consent: GRANTED")
+                print_info("Cluster data may be sent to Google Gemini API for analysis")
+                print_info("Use 'tars privacy revoke' to disable")
+            else:
+                print_info("AI consent: NOT GRANTED")
+                print_info("AI features will prompt for consent on first use")
+                print_info("Use 'tars privacy grant' to enable without prompts")
+        
+        elif action == "revoke":
+            revoke_ai_consent()
+            print_success("AI consent revoked")
+            print_info("No data will be sent to external AI services")
+            print_info("Use --no-ai flag or 'tars privacy grant' to re-enable")
+        
+        elif action == "grant":
+            grant_ai_consent()
+            print_success("AI consent granted")
+            print_info("AI features enabled for all commands")
+            print_info("See docs/PRIVACY.md for details on data handling")
+        
+        else:
+            print_error(f"Unknown action: {action}")
+            print_info("Valid actions: status, revoke, grant")
+            raise typer.Exit(1)
+    
     except Exception as e:
         print_error(f"Command failed: {e}")
         raise typer.Exit(1)

@@ -37,6 +37,13 @@
 - Context displayed before dangerous actions
 - Audit logging for all operations
 - No automatic destructive actions
+- **RBAC permission checks enforced before all write operations**
+
+### ✅ PASSED: RBAC Enforcement
+- Permission checks before delete, restart, scale, drain operations
+- Clear error messages when permissions are denied
+- Comprehensive RBAC documentation in docs/RBAC_REQUIREMENTS.md
+- Minimum required permissions documented per command
 
 ### ✅ PASSED: Dependencies
 - Using official Kubernetes Python client
@@ -153,6 +160,8 @@
    - Limit who can set GEMINI_API_KEY
    - Use RBAC for Kubernetes access
    - Follow principle of least privilege
+   - Review docs/RBAC_REQUIREMENTS.md for minimum required permissions
+   - Validate permissions before deployment: `kubectl auth can-i --list`
 
 4. **Updates**
    - Keep dependencies updated

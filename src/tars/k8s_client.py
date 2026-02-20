@@ -114,6 +114,8 @@ class KubernetesClient:
     @retry_on_failure()
     def delete_pod(self, name: str, namespace: str = "default"):
         """Delete a pod"""
+        if not self.check_rbac_permission("delete", "pods", namespace):
+            raise PermissionError(f"No permission to delete pods in namespace '{namespace}'")
         try:
             return self.core_v1.delete_namespaced_pod(name, namespace)
         except ApiException as e:
@@ -253,6 +255,12 @@ class KubernetesClient:
     @retry_on_failure()
     def restart_resource(self, resource_type: str, name: str, namespace: str):
         """Restart a resource by updating annotation"""
+        resource_map = {"deployment": "deployments", "statefulset": "statefulsets"}
+        resource_name = resource_map.get(resource_type, resource_type + "s")
+        
+        if not self.check_rbac_permission("patch", resource_name, namespace):
+            raise PermissionError(f"No permission to patch {resource_name} in namespace '{namespace}'")
+        
         try:
             from datetime import datetime
             patch = {
@@ -280,6 +288,12 @@ class KubernetesClient:
     @retry_on_failure()
     def scale_resource(self, resource_type: str, name: str, replicas: int, namespace: str):
         """Scale a resource"""
+        resource_map = {"deployment": "deployments", "statefulset": "statefulsets", "replicaset": "replicasets"}
+        resource_name = resource_map.get(resource_type, resource_type + "s")
+        
+        if not self.check_rbac_permission("patch", resource_name, namespace):
+            raise PermissionError(f"No permission to patch {resource_name} in namespace '{namespace}'")
+        
         try:
             patch = {"spec": {"replicas": replicas}}
             
@@ -407,6 +421,11 @@ class KubernetesClient:
             node_name: Node name (validated)
             force: Force drain flag
         """
+        if not self.check_rbac_permission("patch", "nodes", ""):
+            raise PermissionError("No permission to patch nodes")
+        if not self.check_rbac_permission("delete", "pods", ""):
+            raise PermissionError("No permission to delete pods (required for drain)")
+        
         try:
             import subprocess
             # Validate node name to prevent injection
@@ -520,6 +539,27 @@ class KubernetesClient:
                 kind = resource.get('kind')
                 name = resource.get('metadata', {}).get('name')
                 ns = namespace or resource.get('metadata', {}).get('namespace', 'default')
+                
+                # RBAC check before deletion
+                resource_map = {
+                    'Deployment': 'deployments',
+                    'Service': 'services',
+                    'ConfigMap': 'configmaps',
+                    'Secret': 'secrets',
+                    'Pod': 'pods',
+                    'Ingress': 'ingresses'
+                }
+                resource_name = resource_map.get(kind, kind.lower() + 's')
+                
+                if not self.check_rbac_permission("delete", resource_name, ns):
+                    results.append({
+                        'kind': kind,
+                        'name': name,
+                        'namespace': ns,
+                        'status': 'permission_denied'
+                    })
+                    logger.warning(f"No permission to delete {kind}/{name} in {ns}")
+                    continue
                 
                 # Delete based on kind
                 try:

@@ -14,6 +14,7 @@ CONFIG_FILE = TARS_DIR / "config.yaml"
 LOG_FILE = TARS_DIR / "tars.log"
 HISTORY_FILE = TARS_DIR / "history.json"
 AUDIT_LOG = TARS_DIR / "audit.log"
+CONSENT_FILE = TARS_DIR / "ai_consent"
 LOGS_DIR = TARS_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True, mode=0o700)
 
@@ -21,6 +22,25 @@ LOGS_DIR.mkdir(exist_ok=True, mode=0o700)
 for file_path in [CONFIG_FILE, LOG_FILE, HISTORY_FILE, AUDIT_LOG]:
     if file_path.exists():
         os.chmod(file_path, 0o600)  # Only owner can read/write
+
+
+def check_ai_consent() -> bool:
+    """Check if user has consented to AI data sharing"""
+    return CONSENT_FILE.exists()
+
+
+def grant_ai_consent():
+    """Record user consent for AI data sharing"""
+    CONSENT_FILE.touch(mode=0o600)
+    with open(CONSENT_FILE, 'w') as f:
+        from datetime import datetime
+        f.write(f"AI consent granted: {datetime.utcnow().isoformat()}\n")
+
+
+def revoke_ai_consent():
+    """Revoke user consent for AI data sharing"""
+    if CONSENT_FILE.exists():
+        CONSENT_FILE.unlink()
 
 
 def audit_log(action: str, resource: str, namespace: str, user: str = None):

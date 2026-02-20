@@ -34,19 +34,23 @@ class AIAnalyzer:
         """Check if AI analysis is available"""
         return self.client is not None
     
-    def analyze_pod_issue(self, pod_data: Dict[str, Any]) -> str:
+    def analyze_pod_issue(self, pod_data: Dict[str, Any], allow_external: bool = True) -> str:
         """
         Analyze pod issues with AI
         
         Args:
             pod_data: Dictionary containing pod information
+            allow_external: If False, raises error instead of sending data externally
             
         Returns:
             str: Analysis result
             
         Raises:
-            GeminiAPIError: If API call fails
+            GeminiAPIError: If API call fails or external calls disabled
         """
+        if not allow_external:
+            raise GeminiAPIError("AI analysis disabled: --no-ai flag set")
+        
         if not self.is_available():
             raise GeminiAPIError("AI analysis unavailable - GEMINI_API_KEY not set")
         
@@ -58,6 +62,8 @@ class AIAnalyzer:
             pod_data_str = json.dumps(pod_data, indent=2)
             redacted_data = redact_sensitive_data(pod_data_str)
             
+            logger.info(f"Sending pod data to Google Gemini API: {pod_data.get('name', 'unknown')}")
+            
             prompt = self._build_pod_analysis_prompt(json.loads(redacted_data))
             response = self._call_api(prompt)
             return response.text
@@ -65,23 +71,28 @@ class AIAnalyzer:
             logger.error(f"Pod analysis failed: {e}")
             raise GeminiAPIError(f"Analysis failed: {str(e)}")
     
-    def analyze_cluster_health(self, cluster_data: Dict[str, Any]) -> str:
+    def analyze_cluster_health(self, cluster_data: Dict[str, Any], allow_external: bool = True) -> str:
         """
         Analyze overall cluster health
         
         Args:
             cluster_data: Dictionary containing cluster metrics
+            allow_external: If False, raises error instead of sending data externally
             
         Returns:
             str: Health analysis result
             
         Raises:
-            GeminiAPIError: If API call fails
+            GeminiAPIError: If API call fails or external calls disabled
         """
+        if not allow_external:
+            raise GeminiAPIError("AI analysis disabled: --no-ai flag set")
+        
         if not self.is_available():
             raise GeminiAPIError("AI analysis unavailable")
         
         try:
+            logger.info("Sending cluster health data to Google Gemini API")
             prompt = self._build_cluster_analysis_prompt(cluster_data)
             response = self._call_api(prompt)
             return response.text
@@ -93,6 +104,7 @@ class AIAnalyzer:
         """
         Make API call to Gemini with deterministic configuration
         SECURITY: temperature=0.0 for infrastructure operations
+        PRIVACY: Data sent to Google's external servers
         
         Args:
             prompt: The prompt to send
