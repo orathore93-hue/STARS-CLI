@@ -1,66 +1,13 @@
-[build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "stars-cli"
-version = "4.3.0"
-description = "AI-powered Kubernetes monitoring, incident management, and troubleshooting CLI tool for Site Reliability Engineers (SREs) and DevOps teams. Real-time cluster monitoring, crashloop debugging, RBAC enforcement, and intelligent diagnostics."
-readme = "README.md"
-requires-python = ">=3.9"
-license = {text = "MIT"}
-authors = [
-    {name = "Omer Rathore", email = "orathore93@gmail.com"}
+[tool.bandit]
+exclude_dirs = [
+    "/tests",
+    "/test",
+    "/.venv",
+    "/venv",
+    "/dist",
+    "/build"
 ]
-keywords = [
-    "kubernetes", "monitoring", "sre", "devops", "incident-management", 
-    "on-call", "troubleshooting", "ai", "gemini", "cluster-monitoring",
-    "kubernetes-cli", "kubectl", "k8s", "site-reliability", "observability",
-    "crashloop", "debugging", "rbac", "security", "audit", "mttr",
-    "incident-response", "automation", "diagnostics", "alerting"
-]
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "Intended Audience :: System Administrators",
-    "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3 :: Only",
-    "Topic :: System :: Monitoring",
-    "Topic :: System :: Systems Administration",
-    "Topic :: Software Development :: Quality Assurance",
-    "Topic :: System :: Logging",
-    "Topic :: Utilities",
-    "Environment :: Console",
-    "Natural Language :: English",
-]
+skips = []
 
-dependencies = [
-    "typer>=0.9.0",
-    "rich>=13.0.0",
-    "kubernetes>=28.0.0",
-    "google-genai>=0.2.0",
-    "prometheus-api-client>=0.5.0",
-    "pyyaml>=6.0",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "python-dotenv>=1.0.0",
-]
-
-[project.urls]
-Homepage = "https://github.com/orathore93-hue/stars-cli"
-Repository = "https://github.com/orathore93-hue/stars-cli"
-Issues = "https://github.com/orathore93-hue/stars-cli/issues"
-
-[project.scripts]
-stars = "stars.cli:main"
-
-[tool.setuptools]
-packages = ["stars"]
-package-dir = {"" = "src"}
+[tool.bandit.assert_used]
+skips = ["*/test_*.py", "*/tests/*.py"]

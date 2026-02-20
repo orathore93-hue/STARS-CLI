@@ -560,13 +560,23 @@ If STARS helps you during incidents, consider giving it a star! ⭐
 - **Contributing**: Open to contributions (see CONTRIBUTING.md)
 - **License**: MIT - Free and open source
 
-## 📚 Learn More
+## 📚 Documentation
 
-- [SRE Commands Guide](docs/SRE_COMMANDS.md)
-- [Security & Privacy](docs/PRIVACY.md)
-- [RBAC Requirements](docs/RBAC_REQUIREMENTS.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
-- [Changelog](CHANGELOG.md)
+### User Guides
+- [SRE Commands Guide](docs/SRE_COMMANDS.md) - Complete command reference
+- [Security & Privacy](docs/PRIVACY.md) - Privacy and data handling
+- [RBAC Requirements](docs/RBAC_REQUIREMENTS.md) - Required Kubernetes permissions
+
+### Developer Resources
+- [Contributing Guidelines](CONTRIBUTING.md) - How to contribute
+- [Architecture](ARCHITECTURE.md) - System design and architecture
+- [Changelog](CHANGELOG.md) - Version history and changes
+
+### Security Documentation
+- [Security Policy](SECURITY.md) - Security features and best practices
+- [Incident Response Plan](INCIDENT_RESPONSE.md) - Security incident procedures
+- [DevSecOps Pipeline](DEVSECOPS_PIPELINE.md) - CI/CD security measures
+- [Security Hardening Report](SECURITY_HARDENING_REPORT.md) - Audit results
 
 ## 🚀 Get Started Now
 
