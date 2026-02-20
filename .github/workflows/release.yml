@@ -7,8 +7,31 @@ on:
 
 permissions:
   contents: write
+  security-events: write
 
 jobs:
+  security-scan:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
   build:
     name: Build ${{ matrix.os }} binary
     runs-on: ${{ matrix.os }}
@@ -26,13 +49,13 @@ jobs:
             binary_name: stars.exe
 
     steps:
-      # Checkout repository code
+      # Checkout repository code (pinned to commit SHA)
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
 
-      # Setup Python 3.10
+      # Setup Python 3.10 (pinned to commit SHA)
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # v5
         with:
           python-version: '3.10'
 
@@ -55,10 +78,23 @@ jobs:
           cd dist
           mv ${{ matrix.binary_name }} ${{ matrix.asset_name }}
 
-      # Upload binary to GitHub Release
-      - name: Upload release asset
+      # Generate SHA256 checksum
+      - name: Generate checksum
+        shell: bash
+        run: |
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            certutil -hashfile ${{ matrix.asset_name }} SHA256 | findstr /v "hash" > ${{ matrix.asset_name }}.sha256
+          else
+            shasum -a 256 ${{ matrix.asset_name }} > ${{ matrix.asset_name }}.sha256
+          fi
+
+      # Upload binary and checksum to GitHub Release
+      - name: Upload release assets
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/${{ matrix.asset_name }}
+          files: |
+            dist/${{ matrix.asset_name }}
+            dist/${{ matrix.asset_name }}.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

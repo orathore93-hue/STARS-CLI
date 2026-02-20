@@ -47,10 +47,39 @@ TMP_FILE="/tmp/${DEST_BINARY}"
 echo "⬇️ Downloading STARS ${LATEST_TAG} for ${PLATFORM}-${ARCH_NAME}..."
 curl -L --progress-bar "$DOWNLOAD_URL" -o "$TMP_FILE"
 
-# 6. Make executable
+# 6. Download and verify checksum
+echo "🔐 Verifying checksum..."
+CHECKSUM_URL="${DOWNLOAD_URL}.sha256"
+curl -sL "$CHECKSUM_URL" -o "${TMP_FILE}.sha256"
+
+if [ -f "${TMP_FILE}.sha256" ]; then
+    if command -v shasum >/dev/null 2>&1; then
+        # macOS/Linux with shasum
+        cd /tmp && shasum -a 256 -c "${DEST_BINARY}.sha256" 2>/dev/null
+        if [ $? -ne 0 ]; then
+            echo "❌ Checksum verification failed! File may be corrupted or tampered."
+            exit 1
+        fi
+        echo "✅ Checksum verified"
+    elif command -v sha256sum >/dev/null 2>&1; then
+        # Linux with sha256sum
+        cd /tmp && sha256sum -c "${DEST_BINARY}.sha256" 2>/dev/null
+        if [ $? -ne 0 ]; then
+            echo "❌ Checksum verification failed! File may be corrupted or tampered."
+            exit 1
+        fi
+        echo "✅ Checksum verified"
+    else
+        echo "⚠️  Warning: No checksum tool found, skipping verification"
+    fi
+else
+    echo "⚠️  Warning: Checksum file not found, skipping verification"
+fi
+
+# 7. Make executable
 chmod +x "$TMP_FILE"
 
-# 7. Move to system PATH
+# 8. Move to system PATH
 DEST_DIR="/usr/local/bin"
 echo "📦 Moving binary to ${DEST_DIR}..."
 
