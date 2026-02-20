@@ -19,7 +19,7 @@ STARS_BANNER = """[bold cyan]
     ║  ███████║.   ██║   . ██║  ██║.  ██║  ██║.  ███████║        ║
     ║  ╚══════╝.   ╚═╝   . ╚═╝  ╚═╝.  ╚═╝  ╚═╝.  ╚══════╝        ║
     ║                                                            ║
-    ║    [/bold cyan][bold yellow]Site Technical Assistance & Reliability System[/bold yellow][bold cyan]        ║
+    ║    [/bold cyan][bold yellow]Site Technical Assistance & Reliability System[/bold yellow][bold cyan]          ║
     ║                                                            ║
     ║         [/bold cyan][dim]"Humor setting: 90%. Let's do this."[/dim][bold cyan]               ║
     ║                                                            ║
