@@ -1002,7 +1002,9 @@ class MonitoringCommands:
         """AI-powered triage"""
         try:
             pods = self.k8s.list_pods(namespace)
-            problem_pods = [p for p in pods if p.status.phase != 'Running']
+            # Only report actual problems, not Succeeded or Running pods
+            problem_phases = ['Pending', 'Failed', 'Unknown', 'CrashLoopBackOff']
+            problem_pods = [p for p in pods if p.status.phase in problem_phases]
             
             if not problem_pods:
                 console.print(f"[green]No issues found in {namespace}[/green]")
