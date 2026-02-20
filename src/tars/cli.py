@@ -1,12 +1,38 @@
 """TARS CLI - Main entry point"""
 import typer
 import logging
+import random
 from typing import Optional
 from rich.console import Console
 
 from .commands import MonitoringCommands
 from .config import config, LOG_FILE
 from .utils import print_error, print_success, print_info
+
+TARS_ASCII = """[bold cyan]
+    ╔════════════════════════════════════════════════════════════╗
+    ║                                                            ║
+    ║  ████████╗ .  █████╗ .  ██████╗ .  ███████╗                ║
+    ║  ╚══██╔══╝ . ██╔══██╗.  ██╔══██╗.  ██╔════╝                ║
+    ║     ██║    . ███████║.  ██████╔╝.  ███████╗                ║
+    ║     ██║    . ██╔══██║.  ██╔══██╗.  ╚════██║                ║
+    ║     ██║    . ██║  ██║.  ██║  ██║.  ███████║                ║
+    ║     ╚═╝    . ╚═╝  ╚═╝.  ╚═╝  ╚═╝.  ╚══════╝                ║
+    ║                                                            ║
+    ║    [/bold cyan][bold yellow]Technical Assistance & Reliability System[/bold yellow][bold cyan]               ║
+    ║                                                            ║
+    ║         [/bold cyan][dim]"Humor setting: 90%. Let's do this."[/dim][bold cyan]               ║
+    ║                                                            ║
+    ╚════════════════════════════════════════════════════════════╝
+[/bold cyan]"""
+
+WELCOME_MESSAGES = [
+    "I'm ready to monitor your cluster.",
+    "Humor setting at 90%. Cluster monitoring initiated.",
+    "TARS online. Let's see what's broken today.",
+    "Ready to analyze your Kubernetes cluster.",
+    "Cluster monitoring active. Try not to break anything.",
+]
 
 # Setup logging
 logging.basicConfig(
@@ -104,6 +130,8 @@ def version():
 def main():
     """Main entry point"""
     try:
+        console.print(TARS_ASCII)
+        console.print(f"[bold green]TARS:[/bold green] [italic]{random.choice(WELCOME_MESSAGES)}[/italic]\n")
         app()
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted by user[/yellow]")
