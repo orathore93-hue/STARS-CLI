@@ -91,7 +91,8 @@ class AIAnalyzer:
     
     def _call_api(self, prompt: str) -> GenerateContentResponse:
         """
-        Make API call to Gemini
+        Make API call to Gemini with deterministic configuration
+        SECURITY: temperature=0.0 for infrastructure operations
         
         Args:
             prompt: The prompt to send
@@ -103,9 +104,16 @@ class AIAnalyzer:
             GeminiAPIError: If API call fails
         """
         try:
+            # SECURITY: temperature=0.0 ensures deterministic, reproducible outputs
+            # Critical for infrastructure modifications to prevent unpredictable behavior
             response = self.client.models.generate_content(
                 model='gemini-2.0-flash',
-                contents=prompt
+                contents=prompt,
+                config={
+                    'temperature': 0.0,  # Deterministic mode for infrastructure safety
+                    'top_p': 1.0,
+                    'top_k': 1
+                }
             )
             return response
         except Exception as e:

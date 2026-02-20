@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any
 from functools import wraps
 import time
 import yaml
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -315,12 +316,28 @@ class KubernetesClient:
             raise
     
     def port_forward_pod(self, pod_name: str, port: str, namespace: str):
-        """Port forward to pod"""
+        """
+        Port forward to pod - SECURITY: Uses shell=False to prevent command injection
+        
+        Args:
+            pod_name: Pod name (validated)
+            port: Port mapping in format "local:remote" (validated)
+            namespace: Namespace (validated)
+        """
         try:
             import subprocess
+            # Validate inputs to prevent injection
+            if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', pod_name):
+                raise ValueError(f"Invalid pod name: {pod_name}")
+            if not re.match(r'^\d+:\d+$', port):
+                raise ValueError(f"Invalid port format: {port}")
+            if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', namespace):
+                raise ValueError(f"Invalid namespace: {namespace}")
+            
             local_port, remote_port = port.split(':')
             cmd = ['kubectl', 'port-forward', f'pod/{pod_name}', f'{local_port}:{remote_port}', '-n', namespace]
-            subprocess.run(cmd)
+            # SECURITY: shell=False prevents command injection
+            subprocess.run(cmd, shell=False)
         except Exception as e:
             logger.error(f"Failed to port forward: {e}")
             raise
@@ -383,13 +400,24 @@ class KubernetesClient:
             raise
     
     def drain_node(self, node_name: str, force: bool):
-        """Drain a node"""
+        """
+        Drain a node - SECURITY: Uses shell=False to prevent command injection
+        
+        Args:
+            node_name: Node name (validated)
+            force: Force drain flag
+        """
         try:
             import subprocess
+            # Validate node name to prevent injection
+            if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', node_name):
+                raise ValueError(f"Invalid node name: {node_name}")
+            
             cmd = ['kubectl', 'drain', node_name, '--ignore-daemonsets', '--delete-emptydir-data']
             if force:
                 cmd.append('--force')
-            subprocess.run(cmd, check=True)
+            # SECURITY: shell=False prevents command injection
+            subprocess.run(cmd, check=True, shell=False, capture_output=True, text=True)
         except Exception as e:
             logger.error(f"Failed to drain node: {e}")
             raise
@@ -411,13 +439,28 @@ class KubernetesClient:
             raise
     
     def get_deployment_history(self, name: str, namespace: str):
-        """Get deployment history"""
+        """
+        Get deployment history - SECURITY: Uses shell=False to prevent command injection
+        
+        Args:
+            name: Deployment name (validated)
+            namespace: Namespace (validated)
+        """
         try:
             import subprocess
+            # Validate inputs
+            if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', name):
+                raise ValueError(f"Invalid deployment name: {name}")
+            if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', namespace):
+                raise ValueError(f"Invalid namespace: {namespace}")
+            
+            # SECURITY: shell=False with list arguments prevents injection
             result = subprocess.run(
                 ['kubectl', 'rollout', 'history', f'deployment/{name}', '-n', namespace],
                 capture_output=True,
-                text=True
+                text=True,
+                shell=False,
+                check=True
             )
             return result.stdout
         except Exception as e:

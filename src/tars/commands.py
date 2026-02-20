@@ -1038,10 +1038,18 @@ class MonitoringCommands:
         console.print(f"[green]Webhook configured: {url}[/green]")
     
     def autofix_issues(self, namespace: str):
-        """Auto-fix issues with human-in-the-loop confirmation"""
+        """
+        Auto-fix issues with human-in-the-loop confirmation
+        SECURITY: Shows current K8s context before destructive operations
+        """
         console.print(f"[bold]Analyzing issues in {namespace}[/bold]\n")
         
         try:
+            # SECURITY: Get and display current context before any mutations
+            context = self.k8s.get_current_context()
+            context_name = context.get('name', 'unknown')
+            cluster_name = context.get('context', {}).get('cluster', 'unknown')
+            
             pods = self.k8s.list_pods(namespace)
             issues_found = []
             
@@ -1071,10 +1079,22 @@ class MonitoringCommands:
                 kubectl_cmd = f"kubectl delete pod {issue['pod']} -n {namespace}"
                 console.print(f"   [bold yellow]Command:[/bold yellow] {kubectl_cmd}\n")
             
-            # Human-in-the-loop confirmation
+            # SECURITY: Context-aware confirmation prompt
             from rich.prompt import Confirm
+            from rich.panel import Panel
             
-            if Confirm.ask("\n[bold]Execute these fixes?[/bold]", default=False):
+            warning_msg = f"""[bold red]⚠ DESTRUCTIVE OPERATION WARNING ⚠[/bold red]
+
+[bold yellow]Kubernetes Context:[/bold yellow] [cyan]{context_name}[/cyan]
+[bold yellow]Cluster:[/bold yellow] [cyan]{cluster_name}[/cyan]
+[bold yellow]Namespace:[/bold yellow] [cyan]{namespace}[/cyan]
+[bold yellow]Action:[/bold yellow] Delete {len(issues_found)} pod(s)
+
+[bold]You are about to execute fixes in the above context.[/bold]"""
+            
+            console.print(Panel(warning_msg, border_style="red", padding=(1, 2)))
+            
+            if Confirm.ask("\n[bold red]Proceed with auto-fix in this context?[/bold red]", default=False):
                 console.print("\n[bold green]Executing fixes...[/bold green]\n")
                 
                 for issue in issues_found:

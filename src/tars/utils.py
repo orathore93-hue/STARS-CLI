@@ -22,6 +22,10 @@ SENSITIVE_PATTERNS = [
     (re.compile(r'AKIA[0-9A-Z]{16}'), '<REDACTED_AWS_KEY>'),
     # Private keys
     (re.compile(r'-----BEGIN.*PRIVATE KEY-----.*?-----END.*PRIVATE KEY-----', re.DOTALL), '<REDACTED_PRIVATE_KEY>'),
+    # Kubernetes JWTs (Base64 encoded tokens)
+    (re.compile(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'), '<REDACTED_JWT>'),
+    # Generic Base64 credentials (high-entropy strings)
+    (re.compile(r'(?:^|\s)([A-Za-z0-9+/]{40,}={0,2})(?:\s|$)'), ' <REDACTED_BASE64> '),
 ]
 
 
