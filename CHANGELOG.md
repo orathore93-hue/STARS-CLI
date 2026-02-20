@@ -1,5 +1,34 @@
 # TARS CLI Changelog
 
+## [4.1.3] - 2026-02-20 - PRODUCTION SECURITY RELEASE 🔐
+
+### 🔒 Critical Security Enhancements
+- **Audit Logging**: All destructive operations logged to ~/.tars/audit.log
+- **Context Confirmation**: Restart/scale operations show current context and require confirmation
+- **Enhanced Safety**: All destructive ops display context before execution
+- **Compliance Ready**: Audit trail for SOC 2, HIPAA, PCI DSS, GDPR
+
+### 📚 Documentation
+- **SECURITY.md**: Comprehensive production security guide
+- Production considerations and risk assessment
+- Best practices and security checklist
+- Incident response procedures
+- RBAC and compliance guidelines
+
+### 🛡️ Security Features
+- Human-in-the-loop for all destructive operations
+- Context verification before dangerous actions
+- Audit trail with timestamp, user, action, resource
+- Secure audit log (chmod 600)
+
+### ✅ Production Ready
+- Safe for production use with proper configuration
+- Enterprise-grade security controls
+- Compliance-ready audit logging
+- Comprehensive security documentation
+
+---
+
 ## [4.1.2] - 2026-02-20 - SECURITY & STABILITY RELEASE 🔒
 
 ### 🔒 Enterprise Security Features
