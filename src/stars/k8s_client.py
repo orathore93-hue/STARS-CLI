@@ -367,6 +367,19 @@ class KubernetesClient:
     def rollback_resource(self, resource_type: str, name: str, namespace: str):
         """Rollback a resource using kubectl"""
         import subprocess
+        import re
+        
+        # Validate inputs to prevent command injection
+        if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', name):
+            raise ValueError(f"Invalid resource name: {name}")
+        
+        if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', namespace):
+            raise ValueError(f"Invalid namespace: {namespace}")
+        
+        # Validate resource type (whitelist)
+        allowed_types = ['deployment', 'statefulset', 'daemonset']
+        if resource_type not in allowed_types:
+            raise ValueError(f"Invalid resource type: {resource_type}. Allowed: {allowed_types}")
         
         try:
             # Use kubectl rollout undo (API method doesn't exist)
