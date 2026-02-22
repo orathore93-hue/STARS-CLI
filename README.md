@@ -119,32 +119,32 @@ stars triage
 stars oncall
 
 # Deep dive into a problematic pod
-tars diagnose <pod-name>
+stars diagnose <pod-name>
 
 # Generate incident runbook
-tars runbook <pod-name>
+stars runbook <pod-name>
 
 # AI-powered incident report
-tars incident-report
+stars incident-report
 ```
 
 ### 📊 Real-Time Monitoring
 
 ```bash
 # Live pod monitoring
-tars watch
+stars watch
 
 # Resource spike detection
-tars spike
+stars spike
 
 # Custom alerting with thresholds
-tars alert --threshold-cpu 80 --threshold-memory 85 --interval 30
+stars alert --threshold-cpu 80 --threshold-memory 85 --interval 30
 
 # Cluster health pulse
-tars pulse
+stars pulse
 
 # Timeline of recent events
-tars timeline
+stars timeline
 ```
 
 ### 🔧 Auto-Remediation
@@ -154,61 +154,61 @@ tars timeline
 tars autofix
 
 # Apply fixes automatically
-tars autofix --no-dry-run
+stars autofix --no-dry-run
 
 # AI-powered smart scaling
-tars smart-scale <deployment>
+stars smart-scale <deployment>
 
 # Quick restart
-tars restart <pod-name>
+stars restart <pod-name>
 ```
 
 ### 📸 Incident Documentation
 
 ```bash
 # Take complete cluster snapshot
-tars snapshot
+stars snapshot
 
 # Generate runbook for any pod
-tars runbook <pod-name>
+stars runbook <pod-name>
 
 # Create incident report with AI analysis
-tars incident-report
+stars incident-report
 
 # Show cluster story - what happened today?
-tars story
+stars story
 ```
 
 ### 🔍 Advanced Analysis
 
 ```bash
 # Blast radius analysis
-tars blast <pod-name>
+stars blast <pod-name>
 
 # Predict future issues
-tars forecast
+stars forecast
 
 # Chaos engineering insights
-tars chaos
+stars chaos
 
 # Compare two clusters
-tars diff <context1> <context2>
+stars diff <context1> <context2>
 ```
 
 ### 📈 SRE Metrics
 
 ```bash
 # Service Level Objectives
-tars slo
+stars slo
 
 # Service Level Indicators
-tars sli
+stars sli
 
 # Resource usage comparison
-tars compare
+stars compare
 
 # Top resource consumers
-tars top
+stars top
 ```
 
 ## 🎓 Real-World SRE Scenarios
@@ -217,80 +217,80 @@ tars top
 
 ```bash
 # Quick triage
-tars triage
+stars triage
 # Shows: CrashLoopBackOff detected in payment-service
 
 # Deep diagnosis
-tars diagnose payment-service
+stars diagnose payment-service
 # AI analysis: "OOMKilled - memory limit too low"
 
 # Check blast radius
-tars blast payment-service
+stars blast payment-service
 # Shows: Affects checkout flow, 3 dependent services
 
 # Auto-fix
-tars autofix
+stars autofix
 # Recommendation: Increase memory limit to 512Mi
 
 # Generate incident report
-tars incident-report
+stars incident-report
 ```
 
 ### Scenario 2: Proactive Monitoring
 
 ```bash
 # Start alert monitoring
-tars alert --threshold-cpu 80 --threshold-memory 85
+stars alert --threshold-cpu 80 --threshold-memory 85
 
 # In another terminal, watch for spikes
-tars spike
+stars spike
 
 # Check SLO compliance
-tars slo
+stars slo
 ```
 
 ### Scenario 3: Capacity Planning
 
 ```bash
 # Take snapshot for analysis
-tars snapshot
+stars snapshot
 
 # Compare production vs staging
-tars diff prod-context staging-context
+stars diff prod-context staging-context
 
 # Forecast future issues
-tars forecast
+stars forecast
 ```
 
 ### Scenario 4: Multi-Cluster Management
 
 ```bash
 # Compare clusters
-tars diff us-east-1 us-west-2
+stars diff us-east-1 us-west-2
 
 # Switch context and check health
-tars context
-tars health
+stars context
+stars health
 ```
 
 ### Scenario 5: Prometheus Metrics Analysis
 
 ```bash
 # Check Prometheus connection
-tars prom-check --url http://prometheus.example.com:9090
+stars prom-check --url http://prometheus.example.com:9090
 
 # View metrics dashboard
-tars prom-dashboard --namespace production
+stars prom-dashboard --namespace production
 
 # Check specific pod metrics
-tars prom-metrics --namespace production --pod api-server-xyz
+stars prom-metrics --namespace production --pod api-server-xyz
 
 # Monitor active alerts
-tars prom-alerts
+stars prom-alerts
 
 # Run custom PromQL queries
-tars prom-query 'rate(http_requests_total[5m])'
-tars prom-query 'container_memory_usage_bytes{namespace="production"}'
+stars prom-query 'rate(http_requests_total[5m])'
+stars prom-query 'container_memory_usage_bytes{namespace="production"}'
 ```
 
 ## 🛠️ Installation & Setup
