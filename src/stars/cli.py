@@ -111,6 +111,20 @@ def init():
 
 
 @app.command()
+def quit():
+    """Exit STARS CLI"""
+    console.print("\n[bold cyan]👋 Goodbye! STARS shutting down...[/bold cyan]")
+    raise typer.Exit(0)
+
+
+@app.command()
+def exit():
+    """Exit STARS CLI (alias for quit)"""
+    console.print("\n[bold cyan]👋 Goodbye! STARS shutting down...[/bold cyan]")
+    raise typer.Exit(0)
+
+
+@app.command()
 def setup():
     """Setup and validate STARS configuration"""
     import getpass
