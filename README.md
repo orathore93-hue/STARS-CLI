@@ -317,20 +317,20 @@ export GEMINI_API_KEY='your-key'
 export PROMETHEUS_URL='http://localhost:9090'
 
 # Verify setup
-tars setup
+stars setup
 
 # Check Prometheus connection
-tars prom-check
+stars prom-check
 ```
 
 ### Optional: Shell Completion
 
 ```bash
 # Bash
-tars --install-completion bash
+stars --install-completion bash
 
 # Zsh
-tars --install-completion zsh
+stars --install-completion zsh
 ```
 
 ## 📋 Command Reference
@@ -339,80 +339,80 @@ tars --install-completion zsh
 
 | Command | Description | Use Case |
 |---------|-------------|----------|
-| `tars oncall` | On-call dashboard | Start of shift |
-| `tars triage` | Quick incident overview | During incidents |
-| `tars health` | Cluster health check | Regular monitoring |
-| `tars diagnose <pod>` | Deep pod analysis | Troubleshooting |
-| `tars alert` | Real-time alerting | Proactive monitoring |
+| `stars oncall` | On-call dashboard | Start of shift |
+| `stars triage` | Quick incident overview | During incidents |
+| `stars health` | Cluster health check | Regular monitoring |
+| `stars diagnose <pod>` | Deep pod analysis | Troubleshooting |
+| `stars alert` | Real-time alerting | Proactive monitoring |
 
 ### Monitoring
 
 | Command | Description |
 |---------|-------------|
-| `tars watch` | Live pod monitoring |
-| `tars spike` | Resource spike detection |
-| `tars pulse` | Cluster heartbeat |
-| `tars timeline` | Recent events |
-| `tars metrics` | Resource usage |
-| `tars top` | Top consumers |
-| `tars resources <ns>` | All resources in namespace |
+| `stars watch` | Live pod monitoring |
+| `stars spike` | Resource spike detection |
+| `stars pulse` | Cluster heartbeat |
+| `stars timeline` | Recent events |
+| `stars metrics` | Resource usage |
+| `stars top` | Top consumers |
+| `stars resources <ns>` | All resources in namespace |
 
 ### Prometheus Integration
 
 | Command | Description |
 |---------|-------------|
-| `tars prom-check` | Check Prometheus connection |
-| `tars prom-metrics` | Show pod metrics from Prometheus |
-| `tars prom-alerts` | Show active Prometheus alerts |
-| `tars prom-query <query>` | Run custom PromQL query |
-| `tars prom-dashboard` | Metrics dashboard |
+| `stars prom-check` | Check Prometheus connection |
+| `stars prom-metrics` | Show pod metrics from Prometheus |
+| `stars prom-alerts` | Show active Prometheus alerts |
+| `stars prom-query <query>` | Run custom PromQL query |
+| `stars prom-dashboard` | Metrics dashboard |
 
 ### Troubleshooting
 
 | Command | Description |
 |---------|-------------|
-| `tars errors` | Show all errors |
-| `tars crashloop` | CrashLoop detection |
-| `tars oom` | OOM killed pods |
-| `tars pending` | Pending pods analysis |
-| `tars logs <pod>` | AI-summarized logs |
-| `tars events` | Cluster events |
+| `stars errors` | Show all errors |
+| `stars crashloop` | CrashLoop detection |
+| `stars oom` | OOM killed pods |
+| `stars pending` | Pending pods analysis |
+| `stars logs <pod>` | AI-summarized logs |
+| `stars events` | Cluster events |
 
 ### Operations
 
 | Command | Description |
 |---------|-------------|
-| `tars restart <pod>` | Restart pod |
-| `tars scale <dep> <n>` | Scale deployment |
-| `tars rollback <dep>` | Rollback deployment |
-| `tars drain <node>` | Drain node |
-| `tars autofix` | Auto-remediation |
+| `stars restart <pod>` | Restart pod |
+| `stars scale <dep> <n>` | Scale deployment |
+| `stars rollback <dep>` | Rollback deployment |
+| `stars drain <node>` | Drain node |
+| `stars autofix` | Auto-remediation |
 
 ### Analysis
 
 | Command | Description |
 |---------|-------------|
-| `tars analyze` | AI cluster analysis |
-| `tars blast <pod>` | Blast radius |
-| `tars forecast` | Predict issues |
-| `tars chaos` | Chaos insights |
-| `tars compare` | Compare namespaces |
+| `stars analyze` | AI cluster analysis |
+| `stars blast <pod>` | Blast radius |
+| `stars forecast` | Predict issues |
+| `stars chaos` | Chaos insights |
+| `stars compare` | Compare namespaces |
 
 ### Documentation
 
 | Command | Description |
 |---------|-------------|
-| `tars snapshot` | Cluster snapshot |
-| `tars runbook <pod>` | Generate runbook |
-| `tars incident-report` | Incident report |
-| `tars story` | Cluster story |
+| `stars snapshot` | Cluster snapshot |
+| `stars runbook <pod>` | Generate runbook |
+| `stars incident-report` | Incident report |
+| `stars story` | Cluster story |
 
 ### Multi-Cluster
 
 | Command | Description |
 |---------|-------------|
-| `tars context` | Switch contexts |
-| `tars diff <c1> <c2>` | Compare clusters |
+| `stars context` | Switch contexts |
+| `stars diff <c1> <c2>` | Compare clusters |
 
 ## 🎨 Features That Make STARS Unique
 
