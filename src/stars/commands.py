@@ -1283,8 +1283,46 @@ class MonitoringCommands:
     
     def list_prom_metrics(self, url: str):
         """List Prometheus metrics"""
-        console.print("[bold]Prometheus Metrics[/bold]")
-        console.print("[dim]Note: Requires Prometheus connection[/dim]")
+        import requests
+        from .config import config
+        
+        prom_url = url or config.settings.prometheus_url
+        if not prom_url:
+            console.print("[yellow]⚠️  Prometheus URL not configured[/yellow]")
+            console.print("Set with: export PROMETHEUS_URL='http://prometheus:9090'")
+            return
+        
+        try:
+            # Fetch metric names from Prometheus
+            response = requests.get(f"{prom_url}/api/v1/label/__name__/values", timeout=5)
+            response.raise_for_status()
+            
+            data = response.json()
+            if data.get('status') == 'success':
+                metrics = data.get('data', [])
+                
+                console.print(f"[bold cyan]📊 Prometheus Metrics[/bold cyan] ({len(metrics)} total)")
+                console.print(f"[dim]Source: {prom_url}[/dim]\n")
+                
+                # Display metrics in columns
+                from rich.columns import Columns
+                metric_items = [f"[green]•[/green] {m}" for m in sorted(metrics)[:50]]
+                
+                if len(metrics) > 50:
+                    console.print(Columns(metric_items, equal=True, expand=True))
+                    console.print(f"\n[dim]... and {len(metrics) - 50} more metrics[/dim]")
+                else:
+                    console.print(Columns(metric_items, equal=True, expand=True))
+            else:
+                console.print(f"[red]✗ Error: {data.get('error', 'Unknown error')}[/red]")
+                
+        except requests.exceptions.ConnectionError:
+            console.print(f"[red]✗ Cannot connect to Prometheus at {prom_url}[/red]")
+            console.print("[dim]Make sure Prometheus is running and accessible[/dim]")
+        except requests.exceptions.Timeout:
+            console.print(f"[red]✗ Connection timeout to {prom_url}[/red]")
+        except Exception as e:
+            console.print(f"[red]✗ Error fetching metrics: {e}[/red]")
     
     def execute_prom_query(self, query: str, url: str):
         """Execute Prometheus query"""
