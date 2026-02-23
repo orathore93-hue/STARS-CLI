@@ -1275,7 +1275,7 @@ class MonitoringCommands:
     def check_prometheus(self, url: str):
         """Check Prometheus"""
         from .config import config
-        prom_url = url or config.prometheus_url
+        prom_url = url or config.settings.prometheus_url
         if prom_url:
             console.print(f"[green]Prometheus: {prom_url}[/green]")
         else:
@@ -1299,7 +1299,7 @@ class MonitoringCommands:
     def open_prom_dashboard(self, url: str):
         """Open Prometheus dashboard"""
         from .config import config
-        prom_url = url or config.prometheus_url
+        prom_url = url or config.settings.prometheus_url
         if prom_url:
             console.print(f"[green]Opening: {prom_url}[/green]")
         else:
