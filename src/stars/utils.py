@@ -3,7 +3,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.prompt import Confirm
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 import re
 
@@ -11,41 +11,52 @@ console = Console()
 logger = logging.getLogger(__name__)
 
 # Sensitive data patterns for redaction
+# Each tuple is (compiled_regex, replacement_string).
+# IMPORTANT: replacements are plain strings, not backreference templates —
+# do NOT use \1 or group references here unless you also update the sub() calls.
 SENSITIVE_PATTERNS = [
-    (re.compile(r'password["\s:=]+[^\s"]+', re.IGNORECASE), 'password=<REDACTED>'),
-    (re.compile(r'token["\s:=]+[^\s"]+', re.IGNORECASE), 'token=<REDACTED>'),
-    (re.compile(r'api[_-]?key["\s:=]+[^\s"]+', re.IGNORECASE), 'api_key=<REDACTED>'),
-    (re.compile(r'secret["\s:=]+[^\s"]+', re.IGNORECASE), 'secret=<REDACTED>'),
-    (re.compile(r'bearer\s+[^\s]+', re.IGNORECASE), 'bearer <REDACTED>'),
-    (re.compile(r'authorization:\s*[^\s]+', re.IGNORECASE), 'authorization: <REDACTED>'),
-    # AWS keys
+    # Key=value style secrets (covers YAML, JSON, env-var formats)
+    (re.compile(r'password\s*["\s:=]+\s*[^\s",}\]]+', re.IGNORECASE), 'password=<REDACTED>'),
+    (re.compile(r'token\s*["\s:=]+\s*[^\s",}\]]+', re.IGNORECASE), 'token=<REDACTED>'),
+    (re.compile(r'api[_-]?key\s*["\s:=]+\s*[^\s",}\]]+', re.IGNORECASE), 'api_key=<REDACTED>'),
+    (re.compile(r'secret\s*["\s:=]+\s*[^\s",}\]]+', re.IGNORECASE), 'secret=<REDACTED>'),
+    # HTTP auth headers (Bearer tokens, Basic auth, etc.)
+    (re.compile(r'bearer\s+[A-Za-z0-9\-_=.+/]{8,}', re.IGNORECASE), 'bearer <REDACTED>'),
+    (re.compile(r'authorization\s*:\s*\S+', re.IGNORECASE), 'authorization: <REDACTED>'),
+    # AWS IAM access keys — always exactly AKIA + 16 uppercase alphanum
     (re.compile(r'AKIA[0-9A-Z]{16}'), '<REDACTED_AWS_KEY>'),
-    # Private keys
-    (re.compile(r'-----BEGIN.*PRIVATE KEY-----.*?-----END.*PRIVATE KEY-----', re.DOTALL), '<REDACTED_PRIVATE_KEY>'),
-    # Kubernetes JWTs (Base64 encoded tokens)
-    (re.compile(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'), '<REDACTED_JWT>'),
-    # Generic Base64 credentials (high-entropy strings)
-    (re.compile(r'(?:^|\s)([A-Za-z0-9+/]{40,}={0,2})(?:\s|$)'), ' <REDACTED_BASE64> '),
+    # PEM private keys (multi-line)
+    (re.compile(
+        r'-----BEGIN\s[A-Z ]*PRIVATE KEY-----.*?-----END\s[A-Z ]*PRIVATE KEY-----',
+        re.DOTALL | re.IGNORECASE,
+    ), '<REDACTED_PRIVATE_KEY>'),
+    # Kubernetes / JWT tokens — eyJ prefix, three dot-separated base64url segments.
+    # Pattern intentionally broad so it catches tokens inside JSON string values.
+    (re.compile(r'eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}'), '<REDACTED_JWT>'),
+    # Generic high-entropy base64 blobs (≥40 chars) on their own "token".
+    # Use word-boundary-like anchors that don't consume surrounding whitespace.
+    (re.compile(r'(?<![A-Za-z0-9+/])([A-Za-z0-9+/]{40,}={0,2})(?![A-Za-z0-9+/=])'), '<REDACTED_BASE64>'),
 ]
 
 
-def redact_sensitive_data(text: str) -> str:
+def redact_sensitive_data(text: Optional[str]) -> Optional[str]:
     """
     Redact sensitive information from text before sending to AI or logging.
-    
+
     Args:
-        text: Text that may contain sensitive data
-        
+        text: Text that may contain sensitive data (None is accepted and returned as-is).
+
     Returns:
-        Text with sensitive data redacted
+        Text with sensitive data replaced by placeholder tokens, or None/empty
+        unchanged.
     """
     if not text:
         return text
-    
+
     redacted = text
     for pattern, replacement in SENSITIVE_PATTERNS:
         redacted = pattern.sub(replacement, redacted)
-    
+
     return redacted
 
 

@@ -1,6 +1,6 @@
-"""Incident management for SREs"""
 import json
 import os
+import stat
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -9,6 +9,21 @@ from rich.table import Table
 from rich.panel import Panel
 
 console = Console()
+
+
+def _write_secure(path: Path, data: dict) -> None:
+    """
+    Write *data* as JSON to *path* atomically with 0o600 permissions.
+
+    Uses os.open() with O_CREAT so the file is never world-readable, even
+    for the brief moment between creation and a subsequent chmod() call
+    (eliminates the TOCTOU race window — fix #13).
+    """
+    tmp_path = str(path) + '.tmp'
+    fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w') as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp_path, str(path))  # Atomic rename
 
 class IncidentManager:
     """Manage incidents with timeline and context"""
@@ -33,16 +48,10 @@ class IncidentManager:
             "actions_taken": []
         }
         
-        # Save current incident
-        with open(self.current_incident_file, 'w') as f:
-            json.dump(incident, f, indent=2)
-        os.chmod(self.current_incident_file, 0o600)
-        
-        # Also save to incidents history
+        # Save current incident and history atomically with 0o600 (#13).
+        _write_secure(self.current_incident_file, incident)
         incident_file = self.incidents_dir / f"{incident_id}.json"
-        with open(incident_file, 'w') as f:
-            json.dump(incident, f, indent=2)
-        os.chmod(incident_file, 0o600)
+        _write_secure(incident_file, incident)
         
         console.print(f"\n[bold green]✓ Incident {incident_id} started[/bold green]")
         console.print(f"[yellow]Title:[/yellow] {title}")
@@ -73,15 +82,10 @@ class IncidentManager:
             if resource not in incident["affected_resources"]:
                 incident["affected_resources"].append(resource)
         
-        # Save updated incident
-        with open(self.current_incident_file, 'w') as f:
-            json.dump(incident, f, indent=2)
-        os.chmod(self.current_incident_file, 0o600)
-        
+        # Save updated incident atomically with 0o600 (#13).
+        _write_secure(self.current_incident_file, incident)
         incident_file = self.incidents_dir / f"{incident['id']}.json"
-        with open(incident_file, 'w') as f:
-            json.dump(incident, f, indent=2)
-        os.chmod(incident_file, 0o600)
+        _write_secure(incident_file, incident)
         
         console.print(f"[green]✓[/green] Logged: {message}")
     
@@ -104,11 +108,9 @@ class IncidentManager:
         duration = resolved - started
         incident["duration_minutes"] = int(duration.total_seconds() / 60)
         
-        # Save final state
+        # Save final state atomically with 0o600 (#13).
         incident_file = self.incidents_dir / f"{incident['id']}.json"
-        with open(incident_file, 'w') as f:
-            json.dump(incident, f, indent=2)
-        os.chmod(incident_file, 0o600)
+        _write_secure(incident_file, incident)
         
         # Remove current incident marker
         self.current_incident_file.unlink()

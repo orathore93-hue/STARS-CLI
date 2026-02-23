@@ -36,66 +36,94 @@ class AIAnalyzer:
     
     def analyze_pod_issue(self, pod_data: Dict[str, Any], allow_external: bool = True) -> str:
         """
-        Analyze pod issues with AI
-        
+        Analyze pod issues with AI.
+
         Args:
             pod_data: Dictionary containing pod information
             allow_external: If False, raises error instead of sending data externally
-            
+
         Returns:
             str: Analysis result
-            
+
         Raises:
-            GeminiAPIError: If API call fails or external calls disabled
+            GeminiAPIError: If API call fails, external calls disabled, or user
+                            has not consented to AI data sharing.
         """
         if not allow_external:
             raise GeminiAPIError("AI analysis disabled: --no-ai flag set")
-        
+
         if not self.is_available():
             raise GeminiAPIError("AI analysis unavailable - GEMINI_API_KEY not set")
-        
+
+        # Consent must be granted before sending any data to an external API.
+        from .config import check_ai_consent
+        if not check_ai_consent():
+            raise GeminiAPIError(
+                "AI analysis requires user consent. Run 'stars privacy grant' to enable."
+            )
+
         try:
             # Redact sensitive data before sending to AI
             from .utils import redact_sensitive_data
             import json
-            
+
             pod_data_str = json.dumps(pod_data, indent=2)
             redacted_data = redact_sensitive_data(pod_data_str)
-            
+
             logger.info(f"Sending pod data to Google Gemini API: {pod_data.get('name', 'unknown')}")
-            
+
             prompt = self._build_pod_analysis_prompt(json.loads(redacted_data))
             response = self._call_api(prompt)
             return response.text
+        except GeminiAPIError:
+            raise
         except Exception as e:
             logger.error(f"Pod analysis failed: {e}")
             raise GeminiAPIError(f"Analysis failed: {str(e)}")
-    
+
     def analyze_cluster_health(self, cluster_data: Dict[str, Any], allow_external: bool = True) -> str:
         """
-        Analyze overall cluster health
-        
+        Analyze overall cluster health.
+
         Args:
             cluster_data: Dictionary containing cluster metrics
             allow_external: If False, raises error instead of sending data externally
-            
+
         Returns:
             str: Health analysis result
-            
+
         Raises:
-            GeminiAPIError: If API call fails or external calls disabled
+            GeminiAPIError: If API call fails, external calls disabled, or user
+                            has not consented to AI data sharing.
         """
         if not allow_external:
             raise GeminiAPIError("AI analysis disabled: --no-ai flag set")
-        
+
         if not self.is_available():
             raise GeminiAPIError("AI analysis unavailable")
-        
+
+        # Consent must be granted before sending any data to an external API.
+        from .config import check_ai_consent
+        if not check_ai_consent():
+            raise GeminiAPIError(
+                "AI analysis requires user consent. Run 'stars privacy grant' to enable."
+            )
+
         try:
+            # Redact sensitive data before sending to Gemini (fix: was previously missing here)
+            from .utils import redact_sensitive_data
+            import json
+
+            cluster_data_str = json.dumps(cluster_data, indent=2)
+            redacted_str = redact_sensitive_data(cluster_data_str)
+            redacted_data = json.loads(redacted_str)
+
             logger.info("Sending cluster health data to Google Gemini API")
-            prompt = self._build_cluster_analysis_prompt(cluster_data)
+            prompt = self._build_cluster_analysis_prompt(redacted_data)
             response = self._call_api(prompt)
             return response.text
+        except GeminiAPIError:
+            raise
         except Exception as e:
             logger.error(f"Cluster analysis failed: {e}")
             raise GeminiAPIError(f"Analysis failed: {str(e)}")

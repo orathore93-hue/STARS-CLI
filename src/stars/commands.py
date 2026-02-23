@@ -1,15 +1,113 @@
 """Core monitoring commands - Business logic only, delegates to API and output layers"""
 import logging
+import re
+from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
+
 from .k8s_client import KubernetesClient
 from .ai import analyzer, GeminiAPIError
 from .utils import (
-    create_table, print_error, print_success, 
+    create_table, print_error, print_success,
     print_info, print_warning, format_pod_status, console
 )
 from .security import validate_namespace
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Security helpers
+# ---------------------------------------------------------------------------
+
+# Valid Prometheus / PromQL metric name: letter/underscore/colon start,
+# then letters, digits, underscores, colons. No spaces, slashes, or operators.
+_METRIC_NAME_RE = re.compile(r'^[a-zA-Z_:][a-zA-Z0-9_:]{0,127}$')
+
+# Allowed URL schemes when a Prometheus URL is supplied via CLI argument.
+_ALLOWED_URL_SCHEMES = {'http', 'https'}
+
+# Private / link-local IP ranges that must never be reached (SSRF guard).
+_SSRF_BLOCKED_HOSTS = re.compile(
+    r'^(localhost|127\.\d+\.\d+\.\d+|::1'
+    r'|169\.254\.\d+\.\d+'        # AWS/GCP IMDS
+    r'|10\.\d+\.\d+\.\d+'         # RFC-1918
+    r'|192\.168\.\d+\.\d+'        # RFC-1918
+    r'|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+'  # RFC-1918
+    r'|0\.0\.0\.0'
+    r')$',
+    re.IGNORECASE,
+)
+
+# RFC-1123 / DNS-1123 pod / resource name pattern.
+_K8S_NAME_RE = re.compile(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+
+
+def _validate_resource_name(name: str, label: str = "resource name") -> None:
+    """Raise ValueError if *name* is not a valid RFC-1123 Kubernetes resource name."""
+    if not name or not _K8S_NAME_RE.fullmatch(name) or len(name) > 253:
+        raise ValueError(
+            f"Invalid {label}: {name!r}. Must be lowercase alphanumeric and hyphens, "
+            f"start/end with alphanumeric, ≤ 253 chars."
+        )
+
+
+def _resolve_safe_yaml_path(file_path: str) -> Path:
+    """
+    Resolve *file_path* to an absolute path and verify it does not escape the
+    current working directory via directory traversal or symlink tricks (#1).
+
+    Raises:
+        ValueError: If the resolved path would be outside the allowed base.
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file extension is not .yaml / .yml.
+    """
+    path = Path(file_path).resolve()
+
+    # Must exist.
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {file_path!r}")
+
+    # Must be a regular file, not a symlink that escaped the tree.
+    if path.is_symlink():
+        real = path.resolve()
+        # Verify the real target is still within an acceptable directory.
+        # We allow anything except explicit system directories.
+        blocked_prefixes = ('/etc', '/proc', '/sys', '/dev', '/root', '/var/run')
+        for prefix in blocked_prefixes:
+            if str(real).startswith(prefix):
+                raise ValueError(
+                    f"File {file_path!r} is a symlink pointing to a system path "
+                    f"({real}), which is not allowed."
+                )
+
+    # Must be YAML.
+    if path.suffix.lower() not in {'.yaml', '.yml'}:
+        raise ValueError(f"File must be a YAML file (.yaml or .yml), got: {path.suffix!r}")
+
+    return path
+
+
+def _validate_prometheus_url(url: str) -> str:
+    """
+    Validate a Prometheus base URL supplied via CLI argument (#15).
+
+    Raises:
+        ValueError: If the URL scheme is not http/https, or if the host
+                    matches a private/link-local/SSRF-risky pattern.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_URL_SCHEMES:
+        raise ValueError(
+            f"Prometheus URL scheme {parsed.scheme!r} is not allowed. "
+            f"Only {sorted(_ALLOWED_URL_SCHEMES)} are permitted."
+        )
+    hostname = parsed.hostname or ''
+    if _SSRF_BLOCKED_HOSTS.match(hostname):
+        raise ValueError(
+            f"Prometheus URL host {hostname!r} resolves to a private or link-local "
+            f"address. This is blocked to prevent SSRF attacks."
+        )
+    return url
 
 
 class MonitoringCommands:
@@ -87,6 +185,13 @@ class MonitoringCommands:
     def diagnose_pod(self, pod_name: str, namespace: str = "default", allow_ai: bool = True):
         """Diagnose pod issues"""
         try:
+            # Validate BOTH pod_name and namespace before touching the API (#2).
+            try:
+                _validate_resource_name(pod_name, "pod name")
+            except ValueError as exc:
+                print_error(str(exc))
+                return
+
             if not validate_namespace(namespace):
                 print_error(f"Invalid namespace: {namespace}")
                 return
@@ -1463,30 +1568,45 @@ class MonitoringCommands:
     def show_label_cardinality(self, metric: str, url: str):
         """Show label cardinality"""
         from .config import config
+
+        # Validate metric name against PromQL identifier rules (#11).
+        if not metric or not _METRIC_NAME_RE.match(metric):
+            raise ValueError(
+                f"Invalid metric name: {metric!r}. "
+                "Must match ^[a-zA-Z_:][a-zA-Z0-9_:]*$ (max 128 chars)."
+            )
+
         prom_url = url or config.settings.prometheus_url
-        
+
         if not prom_url:
             console.print("[yellow]Prometheus URL not configured[/yellow]")
             console.print("Set with: export PROMETHEUS_URL='http://prometheus:9090'")
             return
-        
+
+        # Validate the URL at use-time to catch CLI-supplied SSRF vectors (#15).
+        try:
+            prom_url = _validate_prometheus_url(prom_url)
+        except ValueError as exc:
+            print_error(str(exc))
+            return
+
         console.print(f"\n[bold cyan]Label Cardinality Analysis: {metric}[/bold cyan]\n")
-        
+
         try:
             import requests
             response = requests.get(f"{prom_url}/api/v1/query", params={'query': metric}, timeout=10)
-            
+
             if response.status_code == 200:
                 data = response.json()
                 result = data.get('data', {}).get('result', [])
-                
+
                 if not result:
                     console.print(f"[yellow]No data found for metric: {metric}[/yellow]")
                     return
-                
+
                 # Analyze labels
                 label_values = {}
-                
+
                 for series in result:
                     for label, value in series.get('metric', {}).items():
                         if label == '__name__':
@@ -1494,50 +1614,48 @@ class MonitoringCommands:
                         if label not in label_values:
                             label_values[label] = set()
                         label_values[label].add(value)
-                
+
                 # Calculate cardinality
                 label_cardinality = [
                     {'label': label, 'cardinality': len(values)}
                     for label, values in label_values.items()
                 ]
-                
+
                 label_cardinality.sort(key=lambda x: x['cardinality'], reverse=True)
-                
+
                 # Display results
                 table = create_table(f"Label Cardinality for {metric}", ["Label", "Unique Values", "Impact"])
-                
+
                 for item in label_cardinality[:10]:
                     impact = "HIGH" if item['cardinality'] > 100 else "MEDIUM" if item['cardinality'] > 10 else "LOW"
                     impact_color = "red" if item['cardinality'] > 100 else "yellow" if item['cardinality'] > 10 else "green"
-                    
+
                     table.add_row(
                         item['label'],
                         str(item['cardinality']),
                         f"[{impact_color}]{impact}[/{impact_color}]"
                     )
-                
+
                 console.print(table)
                 console.print(f"\n[dim]Total series: {len(result)}[/dim]")
             else:
                 console.print(f"[red]Failed to query Prometheus: {response.status_code}[/red]")
+        except ValueError:
+            raise
         except Exception as e:
             console.print(f"[red]Error querying Prometheus: {e}[/red]")
     
     def apply_yaml_file(self, file_path: str, namespace: Optional[str] = None, dry_run: bool = False):
         """Apply YAML file to cluster"""
-        from pathlib import Path
         from rich.prompt import Confirm
         from .config import audit_log
-        
+
         try:
-            # Validate file
-            path = Path(file_path)
-            if not path.exists():
-                print_error(f"File not found: {file_path}")
-                return
-            
-            if not path.suffix in ['.yaml', '.yml']:
-                print_error("File must be a YAML file (.yaml or .yml)")
+            # Resolve path and guard against traversal / symlink escape (#1).
+            try:
+                path = _resolve_safe_yaml_path(file_path)
+            except (ValueError, FileNotFoundError) as exc:
+                print_error(str(exc))
                 return
             
             # Show preview
@@ -1594,16 +1712,16 @@ class MonitoringCommands:
     
     def delete_from_yaml_file(self, file_path: str, namespace: Optional[str] = None):
         """Delete resources from YAML file"""
-        from pathlib import Path
         from rich.prompt import Confirm
         from .config import audit_log
         import yaml
-        
+
         try:
-            # Validate file
-            path = Path(file_path)
-            if not path.exists():
-                print_error(f"File not found: {file_path}")
+            # Resolve path and guard against traversal / symlink escape (#1).
+            try:
+                path = _resolve_safe_yaml_path(file_path)
+            except (ValueError, FileNotFoundError) as exc:
+                print_error(str(exc))
                 return
             
             # Show what will be deleted

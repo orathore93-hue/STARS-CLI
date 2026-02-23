@@ -35,14 +35,53 @@ def retry_on_failure(max_retries: int = 3, backoff: float = 1.0):
 
 class KubernetesClient:
     """Kubernetes API client with security and error handling"""
-    
-    def __init__(self):
+
+    # Context name substrings that indicate a production cluster.
+    # Operations against these contexts require explicit confirmation.
+    _PROD_CONTEXT_PATTERNS = re.compile(
+        r'(^|[-_.])(?:prod|production|live|prd)([-._ ]|$)',
+        re.IGNORECASE,
+    )
+
+    def __init__(self, confirmed_context: Optional[str] = None):
+        """
+        Initialise the Kubernetes client.
+
+        Args:
+            confirmed_context: When the active kubeconfig context matches a
+                production pattern, callers MUST pass the exact context name
+                here to confirm they intend to operate on production.  If the
+                context looks like prod and this argument is absent or wrong,
+                EnvironmentError is raised.
+        """
         try:
             k8s_config.load_kube_config()
         except Exception as e:
             logger.error(f"Failed to load kubeconfig: {e}")
             raise
-        
+
+        # --- Production context guard (#10) ---------------------------------
+        try:
+            contexts, active = k8s_config.list_kube_config_contexts()
+            active_name = (active or {}).get('name', '')
+            if self._PROD_CONTEXT_PATTERNS.search(active_name):
+                if confirmed_context != active_name:
+                    raise EnvironmentError(
+                        f"Active kubeconfig context '{active_name}' looks like a "
+                        f"production cluster. Pass confirmed_context='{active_name}' "
+                        f"to KubernetesClient() if you really intend to target prod, "
+                        f"or switch to a non-prod context first."
+                    )
+                logger.warning(
+                    f"Operating against PRODUCTION context '{active_name}' — "
+                    "proceeding because caller explicitly confirmed."
+                )
+        except EnvironmentError:
+            raise
+        except Exception as e:
+            logger.debug(f"Could not determine active kubeconfig context: {e}")
+        # --------------------------------------------------------------------
+
         self.core_v1 = client.CoreV1Api()
         self.apps_v1 = client.AppsV1Api()
         self.auth_v1 = client.AuthorizationV1Api()
@@ -102,7 +141,12 @@ class KubernetesClient:
     
     @retry_on_failure()
     def get_pod_logs(self, name: str, namespace: str = "default", tail_lines: int = 100) -> str:
-        """Get pod logs"""
+        """Get pod logs — validates name and namespace before calling the API."""
+        # Input validation (#2): must happen before any API interaction.
+        if not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', name) or len(name) > 253:
+            raise ValueError(f"Invalid pod name: {name!r}")
+        if not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', namespace) or len(namespace) > 63:
+            raise ValueError(f"Invalid namespace: {namespace!r}")
         try:
             return self.core_v1.read_namespaced_pod_log(
                 name, namespace, tail_lines=tail_lines
@@ -426,10 +470,11 @@ class KubernetesClient:
         
         try:
             import subprocess
-            # Validate node name to prevent injection
-            if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', node_name):
-                raise ValueError(f"Invalid node name: {node_name}")
-            
+            # Validate node name to prevent injection — use fullmatch so trailing
+            # content like "valid-node\nmalicious" doesn't slip through (#14).
+            if not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', node_name):
+                raise ValueError(f"Invalid node name: {node_name!r}")
+
             cmd = ['kubectl', 'drain', node_name, '--ignore-daemonsets', '--delete-emptydir-data']
             if force:
                 cmd.append('--force')
@@ -465,11 +510,11 @@ class KubernetesClient:
         """
         try:
             import subprocess
-            # Validate inputs
-            if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', name):
-                raise ValueError(f"Invalid deployment name: {name}")
-            if not re.match(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$', namespace):
-                raise ValueError(f"Invalid namespace: {namespace}")
+            # Validate inputs — fullmatch anchors both start AND end (#14).
+            if not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', name):
+                raise ValueError(f"Invalid deployment name: {name!r}")
+            if not re.fullmatch(r'[a-z0-9]([-a-z0-9]*[a-z0-9])?', namespace):
+                raise ValueError(f"Invalid namespace: {namespace!r}")
             
             # SECURITY: shell=False with list arguments prevents injection
             result = subprocess.run(
@@ -484,36 +529,93 @@ class KubernetesClient:
             logger.error(f"Failed to get history: {e}")
             raise
     
-    def apply_yaml(self, file_path: str, namespace: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Apply YAML file to cluster"""
+    def apply_yaml(self, file_path: str, namespace: Optional[str] = None,
+                   allow_privileged: bool = False) -> List[Dict[str, Any]]:
+        """
+        Apply YAML file to cluster.
+
+        Security controls:
+          • RBAC is checked (create) for every resource BEFORE applying (#3).
+          • Privileged/cluster-scoped resource kinds are blocked unless the
+            caller explicitly passes allow_privileged=True (#3).
+          • File path is resolved and must be an absolute, non-symlink-escaped
+            path (path traversal protection is enforced in the caller via
+            commands.py; this method operates on the resolved path).
+        """
+        # Resource kinds that can grant cluster-wide privilege escalation.
+        PRIVILEGED_KINDS = {
+            'ClusterRole',
+            'ClusterRoleBinding',
+            'PodSecurityPolicy',
+            'MutatingWebhookConfiguration',
+            'ValidatingWebhookConfiguration',
+            'CustomResourceDefinition',
+        }
+
+        # Map kind → plural resource name used by the RBAC API.
+        _KIND_TO_RESOURCE = {
+            'Deployment':  'deployments',
+            'Service':     'services',
+            'ConfigMap':   'configmaps',
+            'Secret':      'secrets',
+            'Pod':         'pods',
+            'Ingress':     'ingresses',
+            'Job':         'jobs',
+            'CronJob':     'cronjobs',
+            'StatefulSet': 'statefulsets',
+            'DaemonSet':   'daemonsets',
+        }
+
         try:
             with open(file_path, 'r') as f:
                 resources = list(yaml.safe_load_all(f))
-            
+
             results = []
             for resource in resources:
                 if not resource:
                     continue
-                
-                # Override namespace if specified
+
+                kind = resource.get('kind', '')
+                name = resource.get('metadata', {}).get('name', 'unknown')
+                ns = namespace or resource.get('metadata', {}).get('namespace', 'default')
+
+                # Block privileged kinds unless explicitly allowed (#3).
+                if kind in PRIVILEGED_KINDS and not allow_privileged:
+                    raise PermissionError(
+                        f"Applying privileged resource kind '{kind}' is blocked. "
+                        f"Pass allow_privileged=True to KubernetesClient.apply_yaml() "
+                        f"if you have reviewed this manifest and intentionally want to "
+                        f"apply it."
+                    )
+
+                # RBAC pre-flight check for create permission (#3).
+                resource_plural = _KIND_TO_RESOURCE.get(kind, kind.lower() + 's')
+                if not self.check_rbac_permission('create', resource_plural, ns):
+                    raise PermissionError(
+                        f"No 'create' permission for {resource_plural} in namespace '{ns}'. "
+                        f"Cannot apply {kind}/{name}."
+                    )
+
+                # Override namespace if specified.
                 if namespace and 'metadata' in resource:
                     resource['metadata']['namespace'] = namespace
-                
-                # Apply resource
-                result = utils.create_from_dict(self.api_client, resource, namespace=namespace)
+
+                utils.create_from_dict(self.api_client, resource, namespace=namespace)
                 results.append({
-                    'kind': resource.get('kind'),
-                    'name': resource.get('metadata', {}).get('name'),
-                    'namespace': resource.get('metadata', {}).get('namespace', 'default'),
-                    'status': 'created'
+                    'kind': kind,
+                    'name': name,
+                    'namespace': ns,
+                    'status': 'created',
                 })
-            
+
             return results
         except FileNotFoundError:
             logger.error(f"File not found: {file_path}")
             raise
         except yaml.YAMLError as e:
             logger.error(f"Invalid YAML: {e}")
+            raise
+        except (PermissionError, EnvironmentError):
             raise
         except Exception as e:
             logger.error(f"Failed to apply YAML: {e}")

@@ -1,5 +1,6 @@
 """Secure configuration management with OS keychain integration"""
 import os
+import stat
 import logging
 from pathlib import Path
 from typing import Optional
@@ -122,16 +123,34 @@ def delete_api_key_secure() -> bool:
 # ============================================================================
 
 def check_ai_consent() -> bool:
-    """Check if user has consented to AI data sharing"""
-    return CONSENT_FILE.exists()
+    """
+    Check if user has consented to AI data sharing.
+
+    Returns False if the consent file is missing OR if its permissions are
+    more permissive than 0o600 (which indicates possible tampering).
+    """
+    if not CONSENT_FILE.exists():
+        return False
+    mode = stat.S_IMODE(CONSENT_FILE.stat().st_mode)
+    if mode != 0o600:
+        logger.warning(
+            f"AI consent file has insecure permissions {oct(mode)}; "
+            "treating as absent. Run 'stars privacy grant' to re-create it."
+        )
+        return False
+    return True
 
 
 def grant_ai_consent() -> None:
-    """Record user consent for AI data sharing"""
+    """Record user consent for AI data sharing using atomic file creation."""
     from datetime import datetime
-    CONSENT_FILE.touch(mode=0o600)
-    with open(CONSENT_FILE, 'w') as f:
-        f.write(f"AI consent granted: {datetime.utcnow().isoformat()}\n")
+    import os as _os
+
+    content = f"AI consent granted: {datetime.utcnow().isoformat()}\n"
+    # Atomic create with 0o600 from the first byte — no chmod-after-write race.
+    fd = _os.open(str(CONSENT_FILE), _os.O_WRONLY | _os.O_CREAT | _os.O_TRUNC, 0o600)
+    with _os.fdopen(fd, 'w') as f:
+        f.write(content)
 
 
 def revoke_ai_consent() -> None:
@@ -147,7 +166,10 @@ def revoke_ai_consent() -> None:
 def audit_log(action: str, resource: str, namespace: str, user: Optional[str] = None) -> None:
     """
     Log actions for audit trail with secure permissions.
-    
+
+    All user-supplied fields are sanitised: newlines, carriage returns, and
+    null bytes are stripped to prevent audit-log injection attacks.
+
     Args:
         action: Action performed (e.g., 'delete', 'scale', 'restart')
         resource: Resource affected (e.g., 'pod/nginx', 'deployment/api')
@@ -156,22 +178,45 @@ def audit_log(action: str, resource: str, namespace: str, user: Optional[str] = 
     """
     import json
     from datetime import datetime
-    
+
+    # --- Input sanitisation -------------------------------------------------
+    _CONTROL = str.maketrans('', '', '\n\r\x00')
+
+    def _sanitise(value: str, max_len: int = 512) -> str:
+        if not isinstance(value, str):
+            value = str(value)
+        cleaned = value.translate(_CONTROL).strip()
+        if len(cleaned) > max_len:
+            raise ValueError(
+                f"audit_log field too long ({len(cleaned)} chars, max {max_len})"
+            )
+        return cleaned
+
+    action    = _sanitise(action,    max_len=64)
+    resource  = _sanitise(resource,  max_len=512)
+    namespace = _sanitise(namespace, max_len=63)
+
     if user is None:
         user = os.getenv('USER', 'unknown')
-    
+    user = _sanitise(user, max_len=64)
+    # -------------------------------------------------------------------------
+
     entry = {
         'timestamp': datetime.utcnow().isoformat(),
         'user': user,
         'action': action,
         'resource': resource,
-        'namespace': namespace
+        'namespace': namespace,
     }
-    
-    with open(AUDIT_LOG, 'a') as f:
+
+    # Atomic open with mode 0o600 — no post-write chmod race window.
+    fd = os.open(
+        str(AUDIT_LOG),
+        os.O_WRONLY | os.O_CREAT | os.O_APPEND,
+        0o600,
+    )
+    with os.fdopen(fd, 'a') as f:
         f.write(json.dumps(entry) + '\n')
-    
-    os.chmod(AUDIT_LOG, 0o600)
 
 
 # ============================================================================
@@ -236,14 +281,16 @@ class Config:
                     self.settings.interval = data['interval']
     
     def save(self) -> None:
-        """Save configuration to file (excludes API keys)"""
+        """Save configuration to file (excludes API keys), using atomic write."""
         data = {
             'thresholds': self.settings.thresholds.dict(),
             'interval': self.settings.interval,
         }
-        with open(CONFIG_FILE, 'w') as f:
+        tmp_path = str(CONFIG_FILE) + '.tmp'
+        fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, 'w') as f:
             yaml.dump(data, f, default_flow_style=False)
-        os.chmod(CONFIG_FILE, 0o600)
+        os.replace(tmp_path, CONFIG_FILE)
     
     def get(self, key: str, default: Optional[object] = None) -> Optional[object]:
         """Get configuration value by dot notation"""

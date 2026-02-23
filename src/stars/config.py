@@ -44,25 +44,53 @@ def revoke_ai_consent():
 
 
 def audit_log(action: str, resource: str, namespace: str, user: str = None):
-    """Log actions for audit trail"""
+    """
+    Log actions for audit trail.
+
+    Each argument is sanitised before writing: newlines, carriage returns, and
+    null bytes are stripped so that no caller-supplied value can inject extra
+    JSON lines into the audit file.
+    """
     import json
     from datetime import datetime
-    
+
+    # --- Input sanitisation -------------------------------------------------
+    _CONTROL_CHARS = str.maketrans('', '', '\n\r\x00')
+
+    def _sanitise(value: str, max_len: int = 512) -> str:
+        if not isinstance(value, str):
+            value = str(value)
+        cleaned = value.translate(_CONTROL_CHARS).strip()
+        if len(cleaned) > max_len:
+            raise ValueError(f"audit_log field too long ({len(cleaned)} > {max_len} chars)")
+        return cleaned
+
+    action    = _sanitise(action,    max_len=64)
+    resource  = _sanitise(resource,  max_len=512)
+    namespace = _sanitise(namespace, max_len=63)
+
     if user is None:
         user = os.getenv('USER', 'unknown')
-    
+    user = _sanitise(user, max_len=64)
+    # -------------------------------------------------------------------------
+
     entry = {
         'timestamp': datetime.utcnow().isoformat(),
         'user': user,
         'action': action,
         'resource': resource,
-        'namespace': namespace
+        'namespace': namespace,
     }
-    
-    with open(AUDIT_LOG, 'a') as f:
+
+    # Atomic write: open with O_CREAT | O_APPEND and mode 0o600 so the file
+    # is never world-readable even for a moment (fixes TOCTOU window).
+    fd = os.open(
+        str(AUDIT_LOG),
+        os.O_WRONLY | os.O_CREAT | os.O_APPEND,
+        0o600,
+    )
+    with os.fdopen(fd, 'a') as f:
         f.write(json.dumps(entry) + '\n')
-    
-    os.chmod(AUDIT_LOG, 0o600)
 
 
 class ThresholdsConfig(BaseModel):
@@ -95,8 +123,19 @@ class TarsSettings(BaseSettings):
     
     @property
     def gemini_api_key(self) -> Optional[str]:
-        """Get API key from secure storage (keychain -> local file -> env var)"""
-        # Priority 1: OS Keychain
+        """
+        Get API key from secure storage.
+
+        Priority:
+          1. OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+          2. GEMINI_API_KEY environment variable
+
+        The plaintext ~/.stars/credentials fallback has been intentionally removed.
+        It stored the key in a world-readable-risk file and created an insecure
+        parallel credential path.  Use 'stars config set-key' to store the key in
+        the OS keychain, or export GEMINI_API_KEY in your shell profile.
+        """
+        # Priority 1: OS keychain
         try:
             import keyring
             key = keyring.get_password("stars-cli", "gemini_api_key")
@@ -104,20 +143,8 @@ class TarsSettings(BaseSettings):
                 return key
         except Exception:
             pass
-        
-        # Priority 2: Local credentials file
-        try:
-            from pathlib import Path
-            creds_file = Path.home() / ".stars" / "credentials"
-            if creds_file.exists():
-                with open(creds_file, 'r') as f:
-                    key = f.read().strip()
-                    if key:
-                        return key
-        except Exception:
-            pass
-        
-        # Priority 3: Environment variable
+
+        # Priority 2: Environment variable
         return os.getenv('GEMINI_API_KEY')
     
     @validator('prometheus_url')
@@ -146,15 +173,19 @@ class Config:
                     self.settings.interval = data['interval']
     
     def save(self):
-        """Save configuration to file"""
+        """Save configuration to file with secure atomic permissions."""
         import os
         data = {
             'thresholds': self.settings.thresholds.dict(),
             'interval': self.settings.interval,
         }
-        with open(CONFIG_FILE, 'w') as f:
+        # Write to a temp file first, then atomically rename so we never have
+        # a window where the file exists but is unprotected.
+        tmp_path = str(CONFIG_FILE) + '.tmp'
+        fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, 'w') as f:
             yaml.dump(data, f, default_flow_style=False)
-        os.chmod(CONFIG_FILE, 0o600)
+        os.replace(tmp_path, CONFIG_FILE)
     
     def get(self, key: str, default=None):
         """Get configuration value by dot notation"""
