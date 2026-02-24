@@ -1639,9 +1639,56 @@ def clear_evicted(
         fixer = QuickFixer(k8s)
         
         if all_namespaces:
-            console.print("[yellow]Scanning all namespaces...[/yellow]")
-            # TODO: Implement all namespaces
-            console.print("[red]All namespaces not yet implemented[/red]")
+            console.print("[yellow]Scanning all namespaces...[/yellow]\n")
+            
+            # Get all namespaces
+            namespaces = k8s.list_namespaces()
+            if not namespaces:
+                console.print("[yellow]No namespaces found[/yellow]")
+                return
+            
+            total_evicted = 0
+            total_deleted = 0
+            namespace_results = []
+            
+            # Process each namespace
+            for ns in namespaces:
+                ns_name = ns.metadata.name
+                try:
+                    count = fixer.clear_evicted_pods(ns_name, dry_run=True)
+                    if count > 0:
+                        namespace_results.append((ns_name, count))
+                        total_evicted += count
+                except Exception as e:
+                    console.print(f"[dim]Skipping {ns_name}: {str(e)}[/dim]")
+                    continue
+            
+            # Display results
+            if namespace_results:
+                from rich.table import Table
+                table = Table(title=f"Evicted Pods by Namespace")
+                table.add_column("Namespace", style="cyan")
+                table.add_column("Evicted Pods", justify="right", style="yellow")
+                
+                for ns_name, count in sorted(namespace_results, key=lambda x: x[1], reverse=True):
+                    table.add_row(ns_name, str(count))
+                
+                console.print(table)
+                console.print(f"\n[bold]Total evicted pods: {total_evicted}[/bold]")
+                
+                # Delete if not dry run
+                if not dry_run:
+                    if Confirm.ask(f"\n[yellow]Delete {total_evicted} evicted pods across {len(namespace_results)} namespaces?[/yellow]"):
+                        for ns_name, _ in namespace_results:
+                            deleted = fixer.clear_evicted_pods(ns_name, dry_run=False)
+                            total_deleted += deleted
+                        console.print(f"\n[green]✓ Deleted {total_deleted} evicted pods[/green]")
+                else:
+                    console.print(f"\n[yellow]Run with --apply to delete these pods[/yellow]")
+                    console.print("[dim]Example: stars clear-evicted --all-namespaces --apply[/dim]\n")
+            else:
+                console.print("[green]✓ No evicted pods found in any namespace[/green]")
+            
             return
         
         count = fixer.clear_evicted_pods(namespace, dry_run)
@@ -1720,22 +1767,146 @@ def oncall_report(
     """Generate on-call shift report"""
     from .incident import IncidentManager
     from datetime import datetime, timedelta
+    from rich.table import Table
     
     try:
-        console.print(f"\n[bold]On-Call Shift Report[/bold]")
+        console.print(f"\n[bold cyan]On-Call Shift Report[/bold cyan]")
         console.print(f"[dim]Last {hours} hours[/dim]\n")
         
-        # Get incidents
+        k8s = K8sClient()
+        start_time = datetime.now() - timedelta(hours=hours)
+        
+        # Section 1: Incidents
+        console.print("[bold]📋 Incidents[/bold]")
         manager = IncidentManager()
         manager.list_incidents(limit=20)
         
-        # TODO: Add more metrics
-        # - Pod restarts
-        # - Failed deployments
-        # - Resource alerts
-        # - Error rate spikes
+        # Section 2: Pod Restarts
+        console.print("\n[bold]🔄 Pod Restarts[/bold]")
+        try:
+            pods = k8s.list_pods()
+            restarted_pods = []
+            
+            for pod in pods:
+                if pod.status.container_statuses:
+                    for container in pod.status.container_statuses:
+                        restart_count = container.restart_count
+                        if restart_count > 0:
+                            restarted_pods.append({
+                                'namespace': pod.metadata.namespace,
+                                'pod': pod.metadata.name,
+                                'container': container.name,
+                                'restarts': restart_count,
+                                'state': container.state.waiting.reason if container.state.waiting else 'Running'
+                            })
+            
+            if restarted_pods:
+                restart_table = Table()
+                restart_table.add_column("Namespace", style="cyan")
+                restart_table.add_column("Pod", style="yellow")
+                restart_table.add_column("Container", style="blue")
+                restart_table.add_column("Restarts", justify="right", style="red")
+                restart_table.add_column("State", style="magenta")
+                
+                # Sort by restart count descending
+                for pod_info in sorted(restarted_pods, key=lambda x: x['restarts'], reverse=True)[:10]:
+                    restart_table.add_row(
+                        pod_info['namespace'],
+                        pod_info['pod'],
+                        pod_info['container'],
+                        str(pod_info['restarts']),
+                        pod_info['state']
+                    )
+                
+                console.print(restart_table)
+                console.print(f"[dim]Total pods with restarts: {len(restarted_pods)}[/dim]")
+            else:
+                console.print("[green]✓ No pod restarts detected[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠ Could not fetch pod restarts: {e}[/yellow]")
         
-        console.print("\n[dim]Full report generation coming soon...[/dim]\n")
+        # Section 3: Failed Deployments
+        console.print("\n[bold]❌ Failed Deployments[/bold]")
+        try:
+            deployments = k8s.list_deployments()
+            failed_deployments = []
+            
+            for deploy in deployments:
+                if deploy.status.conditions:
+                    for condition in deploy.status.conditions:
+                        if condition.type == "Progressing" and condition.status == "False":
+                            failed_deployments.append({
+                                'namespace': deploy.metadata.namespace,
+                                'name': deploy.metadata.name,
+                                'reason': condition.reason,
+                                'message': condition.message
+                            })
+            
+            if failed_deployments:
+                deploy_table = Table()
+                deploy_table.add_column("Namespace", style="cyan")
+                deploy_table.add_column("Deployment", style="yellow")
+                deploy_table.add_column("Reason", style="red")
+                
+                for deploy_info in failed_deployments:
+                    deploy_table.add_row(
+                        deploy_info['namespace'],
+                        deploy_info['name'],
+                        deploy_info['reason']
+                    )
+                
+                console.print(deploy_table)
+            else:
+                console.print("[green]✓ No failed deployments[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠ Could not fetch deployments: {e}[/yellow]")
+        
+        # Section 4: Resource Alerts (Evicted Pods)
+        console.print("\n[bold]⚠️  Resource Alerts[/bold]")
+        try:
+            fixer = QuickFixer(k8s)
+            namespaces = k8s.list_namespaces()
+            total_evicted = 0
+            evicted_by_ns = []
+            
+            for ns in namespaces:
+                ns_name = ns.metadata.name
+                try:
+                    count = fixer.clear_evicted_pods(ns_name, dry_run=True)
+                    if count > 0:
+                        evicted_by_ns.append((ns_name, count))
+                        total_evicted += count
+                except:
+                    continue
+            
+            if evicted_by_ns:
+                alert_table = Table()
+                alert_table.add_column("Namespace", style="cyan")
+                alert_table.add_column("Evicted Pods", justify="right", style="red")
+                
+                for ns_name, count in sorted(evicted_by_ns, key=lambda x: x[1], reverse=True)[:5]:
+                    alert_table.add_row(ns_name, str(count))
+                
+                console.print(alert_table)
+                console.print(f"[red]Total evicted pods: {total_evicted}[/red]")
+            else:
+                console.print("[green]✓ No evicted pods[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠ Could not check evicted pods: {e}[/yellow]")
+        
+        # Section 5: Summary
+        console.print("\n[bold]📊 Summary[/bold]")
+        summary_table = Table(show_header=False)
+        summary_table.add_column("Metric", style="cyan")
+        summary_table.add_column("Value", style="yellow")
+        
+        summary_table.add_row("Report Period", f"{hours} hours")
+        summary_table.add_row("Pods with Restarts", str(len(restarted_pods)) if 'restarted_pods' in locals() else "N/A")
+        summary_table.add_row("Failed Deployments", str(len(failed_deployments)) if 'failed_deployments' in locals() else "N/A")
+        summary_table.add_row("Evicted Pods", str(total_evicted) if 'total_evicted' in locals() else "N/A")
+        
+        console.print(summary_table)
+        console.print(f"\n[dim]Report generated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/dim]\n")
     
     except Exception as e:
         print_error(f"Command failed: {e}")
